@@ -70,7 +70,7 @@ def fresh [Monad m] [Lean.MonadLCtx m] (suggestion : Lean.Name) : m Lean.Syntax.
 
 def allGoal [Inhabited α]
   (tac : TacticM α) (comb : List α -> α := fun _ => default)  : TacticM α := newTactic do
-  let mvarIds ← getGoals
+  let mvarIds ← getUnsolvedGoals
   let mut mvarIdsNew := #[]
   let mut ans := []
   for mvarId in mvarIds do
@@ -132,7 +132,7 @@ declare_syntax_cat ssr_intros
 declare_syntax_cat ssr_intro
 syntax ident : ssr_intro
 syntax "->" : ssr_intro
-syntax "/" term : ssr_intro
+syntax "/[" term "]" : ssr_intro
 syntax "<-" : ssr_intro
 syntax "?" : ssr_intro
 syntax "*" : ssr_intro
@@ -153,18 +153,40 @@ syntax (ppSpace colGt ssr_intro)* : ssr_intros
 --     let isr := #[isr];
 --     `(ssr_intros|{ $[$is $isr]|* })
 
+def etaExpandBounded (e : Expr) (n : Nat) : MetaM Expr :=
+  withDefault do forallBoundedTelescope (← inferType e) n fun xs _ => mkLambdaFVars xs (mkAppN e xs)
 
+def argNum (eApp : Expr) (eArg : Expr) : MetaM Nat := do
+  forallTelescopeReducing eApp fun eArgs _ => do
+    let _ := etaExpand eApp
+    let mut i : Nat := 0
+    for e in eArgs do
+      if (<- isDefEq (<- inferType e) eArg) then
+        break
+      i := i + 1
+    return i
+
+def applyInLD (t : Expr) (ld : LocalDecl) : TacticM Unit := do
+  let n <- argNum (<- inferType t) ld.type
+  let t <- etaExpandBounded t n
+  let t <- lambdaTelescope t fun xs t =>
+    mkLambdaFVars xs $ mkApp t ld.toExpr
+  let mvarId <- getMainGoal
+  let mId <- mvarId.assert (<- getUnusedUserName "H") (<- inferType t) t
+  replaceMainGoal [mId]
+  -- mkForallFVars
 
 partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := newTactic do
     match stx with
     | `(ssr_intro|$i:ident) => newTactic do
         run (stx := stx) `(tactic| intro $i:ident)
-    | `(ssr_intro|/$t:term) => newTactic do
-      let name ← fresh "H"
-      run (stx:=stx) `(tactic| intro $name:ident)
-      run (stx:=stx) `(tactic| have $name := $t $name)
-      run (stx:=stx) `(tactic| revert $name)
-      run (stx:=stx) `(tactic| clear $name:ident)
+    | `(ssr_intro|/[$t:term] ) => newTactic do
+      let t <- Tactic.elabTerm t none
+      let name <- fresh "H"
+      run `(tactic| intros $name:ident)
+      allGoal $ for i in (<- getLCtx) do
+        if i.userName == name.getId then
+          applyInLD t i
     | `(ssr_intro| ->) => newTactic do
       let name ← fresh "H"
       run (stx:=stx) `(tactic| intro $name:ident)
@@ -204,7 +226,7 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := newTactic do
     | _ => throwErrorAt stx "Unknown action"
 
 
-elab t:tactic "=>" i:ssr_intro is:ssr_intros : tactic => do
+elab t:tactic "=>" i:ssr_intro is:ssr_intros "." : tactic => do
   run `(tactic|$t); elabSsr i; elabSsr.many is
 
 inductive foo : Int -> Type where
@@ -212,6 +234,9 @@ inductive foo : Int -> Type where
     (i : Int) : foo i
   | b (b : Bool) : foo 5
 
+opaque bar : Bool -> Int -> Bool
+
 theorem bazz : Int -> 5 = 5 -> ∀ f : foo 5, ∀ g : foo 5, f = g -> g = f := by
-   scase=> { ? | ? }
-  -- scase=> { ? | * // } _ { > ? | {} { // | ?? } } //
+  -- intro
+  skip=> /[bar].
+  sorry
