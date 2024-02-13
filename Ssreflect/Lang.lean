@@ -143,7 +143,7 @@ syntax "//" : ssr_intro
 syntax "/="  : ssr_intro
 syntax "//="  : ssr_intro
 syntax "\\" : ssr_intro
-syntax "{" sepBy1((ssr_intros), "|") "}" : ssr_intro
+syntax "{" sepBy1(ssr_intros, "|") "}" : ssr_intro
 
 -- syntax ssr_intros ppSpace ssr_intro : ssr_intros
 syntax (ppSpace colGt ssr_intro)* : ssr_intros
@@ -183,10 +183,11 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := newTactic do
     | `(ssr_intro|/[$t:term] ) => newTactic do
       let t <- Tactic.elabTerm t none
       let name <- fresh "H"
-      run `(tactic| intros $name:ident)
+      run (stx:=stx) `(tactic| intros $name:ident)
       allGoal $ for i in (<- getLCtx) do
         if i.userName == name.getId then
           applyInLD t i
+      run (stx:=stx) `(tactic| clear $name:ident)
     | `(ssr_intro| ->) => newTactic do
       let name ← fresh "H"
       run (stx:=stx) `(tactic| intro $name:ident)
@@ -208,7 +209,7 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := newTactic do
     | `(ssr_intro| //) => newTactic do run (stx:=stx) `(tactic| try (intros; aesop) )
     | `(ssr_intro| /=) => newTactic do run (stx:=stx) `(tactic| try simp )
     | `(ssr_intro| //=) => newTactic do run (stx:=stx) `(tactic| try simp; try aesop )
-    | `(ssr_intro| \) => throwErrorAt stx "Break Point"
+    | `(ssr_intro| \) => newTactic do run (stx:=stx) `(tactic| fail "Goal at this point is:" )
     | `(ssr_intro| { $[$is:ssr_intros]|* } ) => do
       if (← getUnsolvedGoals).length == 1 then
         run (stx:=stx) `(tactic|scase)
@@ -226,7 +227,7 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := newTactic do
     | _ => throwErrorAt stx "Unknown action"
 
 
-elab t:tactic "=>" i:ssr_intro is:ssr_intros "." : tactic => do
+elab t:tactic "=>" i:ssr_intro is:ssr_intros : tactic => do
   run `(tactic|$t); elabSsr i; elabSsr.many is
 
 inductive foo : Int -> Type where
@@ -237,6 +238,4 @@ inductive foo : Int -> Type where
 opaque bar : Bool -> Int -> Bool
 
 theorem bazz : Int -> 5 = 5 -> ∀ f : foo 5, ∀ g : foo 5, f = g -> g = f := by
-  -- intro
-  skip=> /[bar].
-  sorry
+  skip=> /[bar] _ ? { { > | * } // | { ? -> | /= } }
