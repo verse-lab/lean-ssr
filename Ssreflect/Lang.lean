@@ -94,10 +94,10 @@ local elab "scase" : tactic => newTactic do
     run `(tactic| intro $name:ident)
     run `(tactic| unhygienic cases $name:ident)
     allGoal do
-    let hypsNew <- getLCtx
-    for hyp in hypsNew do
-      unless hyps.contains hyp.fvarId do
-      run `(tactic| try revert $(mkIdent hyp.userName):ident)
+      let hypsNew <- getLCtx
+      for hyp in hypsNew do
+        unless hyps.contains hyp.fvarId do
+          run `(tactic| try revert $(mkIdent hyp.userName):ident)
 
 partial def intro1PStep : TacticM Unit :=
   liftMetaTactic fun goal ↦ do
@@ -176,7 +176,7 @@ def applyInLD (t : Expr) (ld : LocalDecl) : TacticM Unit := do
   replaceMainGoal [mId]
   -- mkForallFVars
 
-partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := newTactic do
+partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfoContext stx $ newTactic do
     match stx with
     | `(ssr_intro|$i:ident) => newTactic do
         run (stx := stx) `(tactic| intro $i:ident)
@@ -238,4 +238,4 @@ inductive foo : Int -> Type where
 opaque bar : Bool -> Int -> Bool
 
 theorem bazz : Int -> 5 = 5 -> ∀ f : foo 5, ∀ g : foo 5, f = g -> g = f := by
-  skip=> /[bar] _ ? { { > | * } // | { ? -> | /= } }
+  skip=> /[bar] _ ? { { > | * } // | ?? -> }
