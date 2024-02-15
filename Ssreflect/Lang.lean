@@ -185,15 +185,16 @@ def applyInLD (t : Expr) (ld : LocalDecl) : TacticM Unit := do
   -- mkForallFVars
 
 def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
-  let t <- withNewMCtxDepth do
+  let t <- withNewMCtxDepth (allowLevelAssignments := true) do
     let f ← elabTermForApply stx
     let (mvs, bis, tp) ← forallMetaTelescopeReducingUntilDefEq (← inferType f) ldecl.type
     for (m, b) in mvs.zip bis do
       if b.isInstImplicit && !(← m.mvarId!.isAssigned) then
         try m.mvarId!.inferInstance
         catch _ => continue
-    mkAppOptM' f (mvs.pop.push ldecl.toExpr |>.map fun e => some e)
-  return (<- abstractMVars t).expr
+    let t <- mkAppOptM' f (mvs.pop.push ldecl.toExpr |>.map fun e => some e)
+    return (<- abstractMVars t).expr
+  return t
 
 
 
@@ -206,13 +207,12 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfo
       -- let t <- Tactic.elabTerm t none
       let name <- fresh "H"
       run (stx:=stx) `(tactic| intros $name:ident)
-      allGoals $ do
-        let ctx <- getLCtx
-        let some ldecl := ctx.findFromUserName? name.getId
-          | throwErrorAt stx m!"Identifier not found"
-        let t <- applyIn t ldecl
-        IO.println s!"{ t }"
-      -- catch | _ => return ()
+      allGoal $ for i in (<- getLCtx)do
+        if i.userName == name.getId then
+          let t <- applyIn t i
+          let mvarId <- getMainGoal
+          let mId <- mvarId.assert (<- getUnusedUserName "H") (<- inferType t) t
+          replaceMainGoal [mId]
       run (stx:=stx) `(tactic| clear $name:ident)
     | `(ssr_intro| ->) => newTactic do
       let name ← fresh "H"
@@ -261,7 +261,7 @@ inductive foo : Int -> Type where
     (i : Int) : foo i
   | b (b : Bool) : foo 5
 
-axiom bar : forall k n : Nat, k = 0 -> n = n -> n = 6
+axiom bar : forall n : Nat, n = 0 -> n = n -> n = 6
 
 theorem bazz : Int -> 5 = 5 -> ∀ f : foo 5, ∀ g : foo 5, f = g -> g = f := by
   skip=> _ /[bar]
