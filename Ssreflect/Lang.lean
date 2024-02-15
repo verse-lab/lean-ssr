@@ -209,25 +209,25 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfo
         run (stx := stx) `(tactic| intro $i:ident)
     | `(ssr_intro|/[$t:term] ) => newTactic do
       let name <- fresh "H"
-      run (stx:=stx) `(tactic| intros $name:ident)
-      run (stx:=t) `(tactic| apply $t:term in $name:ident)
+      run (stx:=stx) `(tactic| intros $name)
+      run (stx:=t) `(tactic| apply $t in $name)
     | `(ssr_intro| ->) => newTactic do
       let name ← fresh "H"
-      run (stx:=stx) `(tactic| intro $name:ident)
+      run (stx:=stx) `(tactic| intros $name)
       run (stx:=stx) `(tactic| rw [$name:ident])
-      tryGoal $ run (stx:=stx) `(tactic| clear $name:ident)
+      tryGoal $ run (stx:=stx) `(tactic| clear $name)
     | `(ssr_intro| <-) => newTactic do
       let name ← fresh "H"
-      run (stx:=stx) `(tactic| intro $name:ident)
+      run (stx:=stx) `(tactic| intros $name)
       run (stx:=stx) `(tactic| rw [<-$name:ident])
-      tryGoal $ run (stx:=stx) `(tactic| clear $name:ident)
+      tryGoal $ run (stx:=stx) `(tactic| clear $name)
     | `(ssr_intro| ?) => newTactic do run (stx:=stx) `(tactic| intro _)
     | `(ssr_intro| *) => newTactic do run (stx:=stx) `(tactic| intros)
     | `(ssr_intro| >) => newTactic do introsDep
     | `(ssr_intro| _) => newTactic do
       let name ← fresh "H"
-      run (stx:=stx) `(tactic| intro $name:ident)
-      run (stx:=stx) `(tactic| clear $name:ident)
+      run (stx:=stx) `(tactic| intros $name)
+      run (stx:=stx) `(tactic| clear $name)
     | `(ssr_intro| {}) => newTactic do run (stx:=stx) `(tactic| scase)
     | `(ssr_intro| //) => newTactic do run (stx:=stx) `(tactic| try (intros; aesop) )
     | `(ssr_intro| /=) => newTactic do run (stx:=stx) `(tactic| try simp )
