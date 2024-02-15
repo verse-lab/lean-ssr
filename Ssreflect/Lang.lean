@@ -185,7 +185,7 @@ def applyInLD (t : Expr) (ld : LocalDecl) : TacticM Unit := do
   -- mkForallFVars
 
 def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
-  let t <- withNewMCtxDepth (allowLevelAssignments := true) do
+  withNewMCtxDepth do
     let f ← elabTermForApply stx
     let (mvs, bis, _) ← forallMetaTelescopeReducingUntilDefEq (← inferType f) ldecl.type
     for (m, b) in mvs.zip bis do
@@ -194,7 +194,6 @@ def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
         catch _ => continue
     let t <- mkAppOptM' f (mvs.pop.push ldecl.toExpr |>.map fun e => some e)
     return (<- abstractMVars t).expr
-  return t
 
 local elab "apply" t:term "in" name:ident : tactic => newTactic do
   let i := (<- getLCtx).findFromUserName? name.getId
