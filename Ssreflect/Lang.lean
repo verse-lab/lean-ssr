@@ -1,4 +1,5 @@
 
+import Mathlib
 import Aesop
 import Lean
 import Lean.Elab.Tactic
@@ -168,25 +169,50 @@ def argNum (eApp : Expr) (eArg : Expr) : MetaM Nat := do
 
 def applyInLD (t : Expr) (ld : LocalDecl) : TacticM Unit := do
   let n <- argNum (<- inferType t) ld.type
+  dbg_trace s! "num: {n} "
   let t <- etaExpandBounded t n
+  dbg_trace s! "term: {t} "
+  dbg_trace s! "name: {ld.type} "
   let t <- lambdaTelescope t fun xs t =>
     mkLambdaFVars xs $ mkApp t ld.toExpr
+  -- let t <- t.applyFVarSubst
+  dbg_trace s! "term2: {t} "
   let mvarId <- getMainGoal
+  dbg_trace s! "term3: { <- inferType t }"
+  -- let t <- t.isE
   let mId <- mvarId.assert (<- getUnusedUserName "H") (<- inferType t) t
   replaceMainGoal [mId]
   -- mkForallFVars
+
+def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
+  let t <- withNewMCtxDepth do
+    let f ← elabTermForApply stx
+    let (mvs, bis, tp) ← forallMetaTelescopeReducingUntilDefEq (← inferType f) ldecl.type
+    for (m, b) in mvs.zip bis do
+      if b.isInstImplicit && !(← m.mvarId!.isAssigned) then
+        try m.mvarId!.inferInstance
+        catch _ => continue
+    mkAppOptM' f (mvs.pop.push ldecl.toExpr |>.map fun e => some e)
+  return (<- abstractMVars t).expr
+
+
+
 
 partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfoContext stx $ newTactic do
     match stx with
     | `(ssr_intro|$i:ident) => newTactic do
         run (stx := stx) `(tactic| intro $i:ident)
     | `(ssr_intro|/[$t:term] ) => newTactic do
-      let t <- Tactic.elabTerm t none
+      -- let t <- Tactic.elabTerm t none
       let name <- fresh "H"
       run (stx:=stx) `(tactic| intros $name:ident)
-      allGoal $ for i in (<- getLCtx) do
-        if i.userName == name.getId then
-          applyInLD t i
+      allGoals $ do
+        let ctx <- getLCtx
+        let some ldecl := ctx.findFromUserName? name.getId
+          | throwErrorAt stx m!"Identifier not found"
+        let t <- applyIn t ldecl
+        IO.println s!"{ t }"
+      -- catch | _ => return ()
       run (stx:=stx) `(tactic| clear $name:ident)
     | `(ssr_intro| ->) => newTactic do
       let name ← fresh "H"
@@ -235,7 +261,9 @@ inductive foo : Int -> Type where
     (i : Int) : foo i
   | b (b : Bool) : foo 5
 
-opaque bar : Bool -> Int -> Bool
+axiom bar : forall k n : Nat, k = 0 -> n = n -> n = 6
 
 theorem bazz : Int -> 5 = 5 -> ∀ f : foo 5, ∀ g : foo 5, f = g -> g = f := by
-  skip=> /[bar] _ ? { { > | * } // | ?? -> }
+  skip=> _ /[bar]
+  -- specialize
+  -- skip=> _ /[bar] --{ { > | * } // | ?? -> }
