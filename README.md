@@ -75,7 +75,7 @@ macro "pat" : ssr_intro => `(ssr_intro| /[tac t])
 
 ### Revert patterns
 
-We also implement `:` tactical, which behaves in the same way as is does in SSReflect. `tac: r_1 r_2 .. r_n` will revert all `r_i`s back to the goal and then executes tactic `tac`. Note that if you put `r_i` in parentheses `(t)`, `:` will revert `t` keeping a copy of it in the context. 
+We also implement `:` tactical, which behaves in the same way as is does in SSReflect. `tac: r_1 r_2 .. r_n` will revert all `r_i`s back to the goal and then executes tactic `tac`. Note that if you put `r_i` in parentheses `(r_i)`, `:` will revert `r_i` keeping a copy of it in the context. 
 
 
 ### Examples
