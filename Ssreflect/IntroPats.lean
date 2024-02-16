@@ -72,6 +72,7 @@ macro_rules
   | `(tactic| ssr_triv) => `(tactic| trivial)
 
 partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfoContext stx $ newTactic do
+    let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
     match stx with
     -- intros
     | `(ssr_intro|$i:ident) => newTactic do
@@ -186,5 +187,7 @@ elab t:tactic "=>" i:ssr_intro is:ssr_intros : tactic => do
 --   | a (b : Bool) (eq : b = b) (x : Int) (eqq : if b then x > 0 else x < 0)
 --     (i : Int) : foo i
 --   | b (b : Bool) : foo 5
+
+-- macro "///" : ssr_intro => `(ssr_intro| /[tac skip])
 
 -- axiom bar : forall n : Nat, Bool -> n = n -> n = 6
