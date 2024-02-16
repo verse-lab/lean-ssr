@@ -114,8 +114,8 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfo
 
     -- automations
     | `(ssr_intro| //) => newTactic do run (stx:=stx) `(tactic| try solve | intros <;> ssr_triv )
-    | `(ssr_intro| /=) => newTactic do run (stx:=stx) `(tactic| moveR)
-    | `(ssr_intro| /==) => newTactic do run (stx:=stx) `(tactic| move)
+    | `(ssr_intro| /=) => newTactic do run (stx:=stx) `(tactic| dsimp)
+    | `(ssr_intro| /==) => newTactic do run (stx:=stx) `(tactic| simp)
     | `(ssr_intro| //=) => newTactic do run (stx:=stx) `(tactic| try moveR; try solve | intros <;> ssr_triv )
     | `(ssr_intro| //==) => newTactic do run (stx:=stx) `(tactic| try move; try solve | intros <;> ssr_triv )
 
