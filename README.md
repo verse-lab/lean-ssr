@@ -62,7 +62,7 @@ SSReflect intro patterns come after `=>` tactical. The general syntax here would
 macro_rules
   | `(tactic| ssr_triv) => `(tactic| tac)
 ```
-Note that it will **no** effect if `tac` didn't manage to solve the goal.
+Note that it will have **no** effect if `tac` didn't manage to solve the goal.
 
 11. `//=`, `//==`: equivalent to `// /=` and `// /==`
 12. `/[tac t]`: calls tactic `t`
