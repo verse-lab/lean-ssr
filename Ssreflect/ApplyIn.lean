@@ -8,7 +8,7 @@ import Ssreflect.Elim
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 
-def Lean.Meta.forallMetaTelescopeReducingUntilDefEq
+private def Lean.Meta.forallMetaTelescopeReducingUntilDefEq
     (e t : Expr) (kind : MetavarKind := MetavarKind.natural) :
     MetaM (Array Expr × Array BinderInfo × Expr) := do
   let (ms, bs, tp) ← forallMetaTelescopeReducing e (some 1) kind
@@ -27,7 +27,7 @@ def Lean.Meta.forallMetaTelescopeReducingUntilDefEq
     out := tp
   return (mvs, bis, out)
 
-def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
+private def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
   withNewMCtxDepth do
     let f ← elabTermForApply stx
     let (mvs, bis, _) ← forallMetaTelescopeReducingUntilDefEq (← inferType f) ldecl.type

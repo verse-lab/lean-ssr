@@ -9,11 +9,11 @@ import Ssreflect.Move
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 
-partial def intro1PStep : TacticM Unit :=
+private partial def intro1PStep : TacticM Unit :=
   liftMetaTactic fun goal ↦ do
     let (_, goal) ← goal.intro1P
     pure [goal]
-partial def introsDep : TacticM Unit := do
+private partial def introsDep : TacticM Unit := do
   let t ← getMainTarget
   match t with
   | Expr.forallE _ _ e _ =>
