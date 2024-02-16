@@ -42,22 +42,22 @@ Here we list all features we support at the moment.
 2. `elim`: equivalent to SSReflect's `elim`
 3. `move`:  Reduces goal to the weak head normal form
 4. `moveR`: like `move` but only reduces `[@ reducable]` definitions
-5. `apply t in H`: applies term `t` in hypothesis `H`, and moves the result on top the proof stack. `H` should not necessarily be the first argument of `t`, it will figure out what argument to instantiate automatically. It will also instantiate all arguments of `t` which can be deduced from `H`.
+5. `apply t in H`: applies term `t` in hypothesis `H`, and moves the result on top the proof stack. `H` should not necessarily be the first argument of `t`, tactic will figure out which argument to instantiate automatically. It will also instantiate all other arguments of `t` which can be deduced from `H`
 
 ### Intro patterns
 
-SSReflect intro patterns come after `=>` tactical. The general syntax here would be `tac=> intro_pats`, this will first execute `tac`, and then `intro_pats`. All intro patterns below listed are equivalent to their SSReflect counterparts.
+SSReflect intro patterns come after `=>` tactical. The general syntax here would be `tac=> intro_pats`. This first executes `tac`, and then `intro_pats`. All intro patterns listed below are equivalent to their SSReflect counterparts.
 
 1. `name`, `?`, `_`, `*`, `>`, `->`, `<-`
-2. `/t`: applies `t` to the top hypothesis on the stack.  
+2. `/t`: applies `t` to the top hypothesis on the stack 
 3. `/(_ t)`: applies top hypothesis on the stack to `t` 
-4. `/[swap]`,`/[dup]`, `/[apply]`: swaps first two top hypothesis on the stack, duplicates top hypothesis on the stack, applies the top hypothesis to the the second top hypothesis. 
+4. `/[swap]`,`/[dup]`, `/[apply]`: swaps first two top hypothesis on the stack, duplicates top hypothesis on the stack, applies the first top hypothesis to the the second top hypothesis
 5. `[]`: equivalent to `scase`
-6. `[ branch_1 | branch_2 | .. | branch_n  ]`: equivalent to `scase`, but runs `branch_i` on the `i`-th subgoal, appears after case analysis.
+6. `[ branch_1 | branch_2 | .. | branch_n  ]`: equivalent to `scase`, but runs `branch_i` on the `i`-th subgoal which appears after case analysis
 7. `{ name_1 name_2 .. name_n }`: clears all `name_i`s
 8. `{}name`: equivalent to `clear name; intro name`
 9. `/=`, `/==`: equivalent to `dsimp` and `simp` correspondently 
-10. `//`: calls `ssr_triv` tactic. By default it boils down to `trivial`, but you can customize it. For example if you want it to call tactic `tac` you have to write 
+10. `//`: calls `ssr_triv` tactic. By default it boils down to `trivial`, but you can customize it. For example, if you want it to call tactic `tac` you can write 
 ```lean
 macro_rules
   | `(tactic| ssr_triv) => `(tactic| tac)
@@ -67,7 +67,7 @@ Note that it will have **no** effect if `tac` didn't manage to solve the goal.
 11. `//=`, `//==`: equivalent to `// /=` and `// /==`
 12. `/[tac t]`: calls tactic `t`
 
-Moreover intro patterns are extensible. If you want to add you own intro pattern `pat` that implemented with tactic `t`, just write 
+Moreover intro patterns are extensible. If you want to add you own intro pattern `pat` implemented as a tactic `t`, just write 
 
 ```lean
 macro "pat" : ssr_intro => `(ssr_intro| /[tac t])
@@ -75,7 +75,7 @@ macro "pat" : ssr_intro => `(ssr_intro| /[tac t])
 
 ### Revert patterns
 
-We also implement `:` tactical, which behaves in the same way as is does in SSReflect. `tac: r_1 r_2 .. r_n` will revert all `r_i` back to the goal and then execute tactic `tac`. Note that if `r_i` is a term in parentheses `(t)`, then it will revert `t` keeping a copy of it in the context. 
+We also implement `:` tactical, which behaves in the same way as is does in SSReflect. `tac: r_1 r_2 .. r_n` will revert all `r_i`s back to the goal and then executes tactic `tac`. Note that if you put `r_i` in parentheses `(t)`, `:` will revert `t` keeping a copy of it in the context. 
 
 
 ### Examples
