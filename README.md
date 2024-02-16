@@ -4,7 +4,7 @@ This repository provides a SSReflect tactic language for Lean4, as well as some 
 
 ## Building 
 
-With `elan` installed, lake build should suffice.
+With `elan` installed, `lake build` should suffice.
 
 ## Adding SSReflect to your project
 
