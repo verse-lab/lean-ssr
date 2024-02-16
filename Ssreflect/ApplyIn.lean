@@ -1,12 +1,31 @@
-import Mathlib
+-- import Mathlib
 import Lean
 import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
-import «Ssreflect».Utils
-import «Ssreflect».Elim
+import Ssreflect.Utils
+import Ssreflect.Elim
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
+
+def Lean.Meta.forallMetaTelescopeReducingUntilDefEq
+    (e t : Expr) (kind : MetavarKind := MetavarKind.natural) :
+    MetaM (Array Expr × Array BinderInfo × Expr) := do
+  let (ms, bs, tp) ← forallMetaTelescopeReducing e (some 1) kind
+  unless ms.size == 1 do
+    if ms.size == 0 then throwError m!"Failed: {← ppExpr e} is not the type of a function."
+    else throwError m!"Failed"
+  let mut mvs := ms
+  let mut bis := bs
+  let mut out : Expr := tp
+  while !(← isDefEq (← inferType mvs.toList.getLast!) t) do
+    let (ms, bs, tp) ← forallMetaTelescopeReducing out (some 1) kind
+    unless ms.size == 1 do
+      throwError m!"Failed to find {← ppExpr t} as the type of a parameter of {← ppExpr e}."
+    mvs := mvs ++ ms
+    bis := bis ++ bs
+    out := tp
+  return (mvs, bis, out)
 
 def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
   withNewMCtxDepth do

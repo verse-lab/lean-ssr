@@ -1,11 +1,11 @@
 import Lean
 import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
-import Qq
+-- import Qq
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
-open Qq
+-- open Qq
 
 -- Execute `x` using the main goal local context and instances -
 -- This is necessary to make sure that the context is properly updated for future tactics.
@@ -19,22 +19,6 @@ open Qq
 -- ```
 def newTactic (x : TacticM α) : TacticM α :=
   withMainContext x
-
--- Check if the expression is a Prop and if so return it as a Q(Prop) that can be used in a pattern match.
-private def castToProp (e: Lean.Expr) : TacticM (Option Q(Prop)) := do
-  Qq.checkTypeQ (u := Lean.levelOne) e q(Prop)
-
-
--- getHypotheses returns the hypotheses as an array of tuples of (Hypothesis name, Q(Prop))
--- This way the hypothesis Q(Prop) can be used in a pattern match and
--- the name can be used to refer to the hypothesis in other tactics
-def getHypotheses : TacticM (Array (Lean.Syntax.Ident × Q(Prop))) := do
-  let mut res := #[]
-  for localDecl in ← Lean.MonadLCtx.getLCtx do
-    if let some typ ← castToProp localDecl.type then
-      let name := Lean.mkIdent localDecl.userName
-      res := res.push (name, typ)
-  return res
 
 -- run is shorthand for evalTactic (← t).
 -- def run (t: TacticM (Lean.TSyntax `tactic)): TacticM Unit := do
@@ -52,13 +36,6 @@ def run (t: TacticM (Lean.TSyntax `tactic)) (stx : Option Syntax := none): Tacti
 
 def tryGoal (t: TacticM Unit): TacticM Unit := do
   t <|> return ()
-
--- Returns the main goal as a Q(Prop), such that it can be used in a pattern match.
-def getGoalProp : TacticM Q(Prop) := do
-  let goal ← getMainTarget
-  match ← castToProp goal with
-  | some qType => return qType
-  | none => throwError "goal is not a proposition"
 
 
 -- Creates a fresh variable with the suggested name.

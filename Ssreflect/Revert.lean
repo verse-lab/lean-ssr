@@ -1,7 +1,7 @@
 import Lean
 import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
-import «Ssreflect».Utils
+import Ssreflect.Utils
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
