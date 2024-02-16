@@ -13,8 +13,8 @@ Here we list all features we support at the moment.
 
 1. `scase`: equivalent to SSReflect's `case`
 2. `elim`: equivalent to SSReflect's `elim`
-3. `move`: equivalent to SSReflect's `move`
-4. `moveR`: equivalent to SSReflect's `move`, but only reduce `[@ reducable]` definitions
+3. `move`:  Reduces goal to the weak head normal form
+4. `moveR`: like `move` but only reduce `[@ reducable]` definitions
 5. `apply t in H`: applies term `t` in hypothesis `H`, and moves the result on top the proof stack. `H` should not necessarily be the first argument of `t`, it will figure out what argument to instantiate automatically. It will also instantiate all arguments of `t` which can be deduced from `H`.
 
 ### Intro patterns
