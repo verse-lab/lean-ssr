@@ -46,7 +46,7 @@ Here we list all features we support at the moment.
 
 ### Intro patterns
 
-SSReflect intro patterns come after `=>` tactical. The general syntax here would be `tac=> intro_pats`, this will first execute `tac`, and then `intro_pats`. All listed intro patterns below are equivalent to their SSReflect counterparts
+SSReflect intro patterns come after `=>` tactical. The general syntax here would be `tac=> intro_pats`, this will first execute `tac`, and then `intro_pats`. All intro patterns below listed are equivalent to their SSReflect counterparts.
 
 1. `name`, `?`, `_`, `*`, `>`, `->`, `<-`
 2. `/t`: applies `t` to the top hypothesis on the stack.  
