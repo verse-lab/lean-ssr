@@ -90,4 +90,21 @@ def allGoal [Inhabited α]
         return (ans, mvarIdsNew)
       (ans, mvarIdsNew) := (ans', mvarIdsNew')
   setGoals mvarIdsNew.toList
-  return (comb ans)
+  return comb ans
+
+
+def range (n : Nat) := (List.iota n).reverse.map (fun x => x - 1)
+
+partial def idxGoal [Inhabited α] (tacs : Nat -> TacticM α)
+  (comb : List α -> α := fun _ => default) : TacticM α :=
+  newTactic do
+  let mut newGoals := #[]
+  let mut ans := []
+  let goals ← getUnsolvedGoals
+  for i in range goals.length do
+    let goal := goals[i]!
+    setGoals [goal]
+    ans := (<- tacs i) :: ans
+    newGoals := newGoals ++ (<- getUnsolvedGoals)
+  setGoals newGoals.toList
+  return comb ans

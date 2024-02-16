@@ -9,18 +9,6 @@ import «Ssreflect».ApplyIn
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 
-local elab "scase" : tactic => newTactic do
-    let hyps <- getLCtx
-    let name <- fresh "H"
-    run `(tactic| intro $name:ident)
-    run `(tactic| unhygienic cases $name:ident)
-    allGoal do
-      let hypsNew <- getLCtx
-      for hyp in hypsNew do
-        unless hyps.contains hyp.fvarId do
-          run `(tactic| try revert $(mkIdent hyp.userName):ident)
-
-
 partial def intro1PStep : TacticM Unit :=
   liftMetaTactic fun goal ↦ do
     let (_, goal) ← goal.intro1P
@@ -33,22 +21,6 @@ partial def introsDep : TacticM Unit := do
       intro1PStep
       introsDep
   | _ => pure ()
-
-def range (n : Nat) := (List.iota n).reverse.map (fun x => x - 1)
-
-partial def idxGoal [Inhabited α] (tacs : Nat -> TacticM α)
-  (comb : List α -> α := fun _ => default) : TacticM α :=
-  newTactic do
-  let mut newGoals := #[]
-  let mut ans := []
-  let goals ← getUnsolvedGoals
-  for i in range goals.length do
-    let goal := goals[i]!
-    setGoals [goal]
-    ans := (<- tacs i) :: ans
-    newGoals := newGoals ++ (<- getUnsolvedGoals)
-  setGoals newGoals.toList
-  return (comb ans)
 
 declare_syntax_cat ssr_intros
 declare_syntax_cat ssr_intro
