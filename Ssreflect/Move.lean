@@ -3,14 +3,15 @@ import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import «Ssreflect».Utils
 
-elab "move" : tactic => newTactic do
-  let goalT <- whnfR (<- getMainTarget)
-  let goal <- getMainGoal
-  let mId <- mkFreshExprMVar goalT
-  goal.assign mId
+open Lean Lean.Expr Lean.Meta
+open Lean Elab Command Term Meta Tactic
+
+elab "moveR" : tactic => newTactic do
+  let mId <- mkFreshExprMVar $ <- whnfR (<- getMainTarget)
+  (<- getMainGoal).assign mId
   setGoals [mId.mvarId!]
 
-def foo (k : Nat) : Prop :=
-  match k with
-  | 0 => True
-  | n + 1 => False
+elab "move" : tactic => newTactic do
+  let mId <- mkFreshExprMVar $ <- whnf (<- getMainTarget)
+  (<- getMainGoal).assign mId
+  setGoals [mId.mvarId!]

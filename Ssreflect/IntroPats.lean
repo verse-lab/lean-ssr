@@ -1,10 +1,10 @@
-import Aesop
 import Lean
 import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import «Ssreflect».Utils
 import «Ssreflect».Elim
 import «Ssreflect».ApplyIn
+import «Ssreflect».Move
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
@@ -42,8 +42,10 @@ syntax "/(_" term ")" : ssr_intro
 
 -- automations
 syntax "//" : ssr_intro
-syntax "/="  : ssr_intro
+syntax "/==" : ssr_intro
+syntax "/=" : ssr_intro
 syntax "//="  : ssr_intro
+syntax "//=="  : ssr_intro
 
 -- destructs
 syntax "[]" : ssr_intro
@@ -58,8 +60,16 @@ syntax "/[dup]" : ssr_intro
 syntax "{" (ppSpace colGt term:max)+ "}" : ssr_intro
 syntax "{}" ident : ssr_intro
 
+-- tactics
+syntax "/[tac " tactic "]" : ssr_intro
+
 -- syntax ssr_intros ppSpace ssr_intro : ssr_intros
 syntax (ppSpace colGt ssr_intro)* : ssr_intros
+
+syntax "ssr_triv" : tactic
+
+macro_rules
+  | `(tactic| ssr_triv) => `(tactic| trivial)
 
 partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfoContext stx $ newTactic do
     match stx with
@@ -103,9 +113,11 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfo
 
 
     -- automations
-    | `(ssr_intro| //) => newTactic do run (stx:=stx) `(tactic| try solve | (intros; aesop) )
-    | `(ssr_intro| /=) => newTactic do run (stx:=stx) `(tactic| try simp )
-    | `(ssr_intro| //=) => newTactic do run (stx:=stx) `(tactic| try simp; try solve | aesop )
+    | `(ssr_intro| //) => newTactic do run (stx:=stx) `(tactic| try solve | intros <;> ssr_triv )
+    | `(ssr_intro| /=) => newTactic do run (stx:=stx) `(tactic| moveR)
+    | `(ssr_intro| /==) => newTactic do run (stx:=stx) `(tactic| move)
+    | `(ssr_intro| //=) => newTactic do run (stx:=stx) `(tactic| try moveR; try solve | intros <;> ssr_triv )
+    | `(ssr_intro| //==) => newTactic do run (stx:=stx) `(tactic| try move; try solve | intros <;> ssr_triv )
 
     -- destructs
     | `(ssr_intro| []) => newTactic do run (stx:=stx) `(tactic| scase)
@@ -154,6 +166,10 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfo
     | `(ssr_intro| {}$i:ident ) => newTactic do
       run (stx:=stx) `(tactic| clear $i)
       run (stx:=stx) `(tactic| intros $i)
+
+    -- tactics
+    | `(ssr_intro| /[tac $t:tactic]) => newTactic do
+      run (stx:=stx) `(tactic| $t)
     | _ => throwErrorAt stx "Unknown action"
   where
     many (stx : TSyntax `ssr_intros) : TacticM Unit :=
@@ -166,16 +182,9 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfo
 elab t:tactic "=>" i:ssr_intro is:ssr_intros : tactic => do
   run `(tactic|$t); elabSsr i; elabSsr.many is
 
-inductive foo : Int -> Type where
-  | a (b : Bool) (eq : b = b) (x : Int) (eqq : if b then x > 0 else x < 0)
-    (i : Int) : foo i
-  | b (b : Bool) : foo 5
+-- inductive foo : Int -> Type where
+--   | a (b : Bool) (eq : b = b) (x : Int) (eqq : if b then x > 0 else x < 0)
+--     (i : Int) : foo i
+--   | b (b : Bool) : foo 5
 
-axiom bar : forall n : Nat, Bool -> n = n -> n = 6
-
-theorem bazz : forall k: Nat, 5 = 5 -> Bool -> ∀ f : foo 5, ∀ n : Nat, ∀ g : foo 5, f = g -> n > k := by
-  -- skip=> ? /bar/[apply] H {}H
-  elim=> [ ? [] ? //= | k IHk ]
-  sorry
-  sorry
-  sorry
+-- axiom bar : forall n : Nat, Bool -> n = n -> n = 6
