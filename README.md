@@ -11,7 +11,7 @@ With `elan` installed, lake build should suffice.
 To use Ssreflect in a Lean 4 project, first add this package as a dependency. In your lakefile.lean, add
 
 ```lean
-require aesop from git "https://github.com/verse-lab/ssr-lean"
+require Ssreflect from git "https://github.com/verse-lab/ssr-lean"
 ```
 
 Then run 
