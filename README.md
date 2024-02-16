@@ -1,4 +1,4 @@
-#SSL: SSReflect Tactic language for Lean4
+# SSL: SSReflect Tactic language for Lean4
 
 This repository provides a SSReflect tactic language for Lean4, as well as some extra handy tactics you might miss from Coq
 
@@ -40,7 +40,11 @@ Note that it will **no** effect if `tac` didn't manage to solve the goal.
 11. `//=`, `//==`: equivalent to `// /=` and `// /==`
 12. `/[tac t]`: calls tactic `t`
 
-### Revert patterns: 
+### Revert patterns
 
 We also implement `:` tactical, which behaves in the same way as is does in SSReflect. `tac: r_1 r_2 .. r_n` will revert all `r_i` back to the goal and then execute tactic `tac`. Note that if `r_i` is a term in parentheses `(t)`, then it will revert `t` keeping a copy of it in the context. 
 
+
+### Examples
+
+You can find SSL use case examples at [TODO]
