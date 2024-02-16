@@ -1,4 +1,3 @@
-import Aesop
 import Lean
 import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
@@ -34,7 +33,7 @@ def mkInitialTacticInfoR (stx : Syntax) : TacticM (TacticM Info) := do
 @[inline] def withTacticInfoContextR (stx : Syntax) (x : TacticM α) : TacticM α := do
   withInfoContext x (← mkInitialTacticInfoR stx)
 
-partial def elabSsrR (stx :  TSyntax `ssr_revert) : TacticM Unit := withTacticInfoContextR stx $ newTactic do
+def elabSsrR (stx :  TSyntax `ssr_revert) : TacticM Unit := withTacticInfoContextR stx $ newTactic do
     match stx with
     | `(ssr_revert|$i:ident) => newTactic do
         run (stx := stx) `(tactic| revert $i:ident)
@@ -52,5 +51,8 @@ partial def elabSsrR (stx :  TSyntax `ssr_revert) : TacticM Unit := withTacticIn
     | _ => throwErrorAt stx "Unknown action"
 
 
-elab t:tactic ":" is:ssr_reverts : tactic => newTactic do
-  elabSsrR.many is; run `(tactic|$t)
+elab t:tactic ":" is:ssr_reverts : tactic => do
+  elabSsrR.many is; run `(tactic|$t);
+
+-- example (k : Int) : Int := by
+--   skip: k (Eq.refl k) (Eq.refl 0)
