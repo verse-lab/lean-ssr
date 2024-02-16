@@ -2,8 +2,35 @@
 
 This repository provides a SSReflect tactic language for Lean4, as well as some extra handy tactics you might miss from Coq
 
-## Installation
-[TODO]
+## Building 
+
+With `elan` installed, lake build should suffice.
+
+## Adding SSReflect to your project
+
+To use Ssreflect in a Lean 4 project, first add this package as a dependency. In your lakefile.lean, add
+
+```lean
+require aesop from git "https://github.com/verse-lab/ssr-lean"
+```
+
+Then run 
+
+```
+lake update Ssreflect
+```
+
+You also need to make sure that your lean-toolchain file contains the same version of Lean 4 as SSReflect's, and that your versions of SSReflect's dependencies (currently only std4) match. We unfortunately can't support version ranges at the moment.
+
+Now the following test file should compile:
+
+```lean
+import Ssreflect.Lang
+
+example : α → α :=
+  move=> ? //=
+```
+
 
 ## Supported features
 
