@@ -67,6 +67,12 @@ Note that it will **no** effect if `tac` didn't manage to solve the goal.
 11. `//=`, `//==`: equivalent to `// /=` and `// /==`
 12. `/[tac t]`: calls tactic `t`
 
+Moreover intro patterns are extensible. If you want to add you own intro pattern `pat` that implemented with tactic `t`, just write 
+
+```lean
+macro "pat" : ssr_intro => `(ssr_intro| /[tac t])
+```
+
 ### Revert patterns
 
 We also implement `:` tactical, which behaves in the same way as is does in SSReflect. `tac: r_1 r_2 .. r_n` will revert all `r_i` back to the goal and then execute tactic `tac`. Note that if `r_i` is a term in parentheses `(t)`, then it will revert `t` keeping a copy of it in the context. 
