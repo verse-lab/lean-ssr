@@ -48,7 +48,7 @@ syntax "//="  : ssr_intro
 syntax "//=="  : ssr_intro
 
 -- destructs
-syntax "[]" : ssr_intro
+syntax "[ ]" : ssr_intro
 syntax "[" sepBy1(ssr_intros, "|") "]" : ssr_intro
 
 -- top hyps manipulations
