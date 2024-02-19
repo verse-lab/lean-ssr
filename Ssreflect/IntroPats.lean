@@ -68,8 +68,13 @@ syntax (ppSpace colGt ssr_intro)* : ssr_intros
 
 syntax "ssr_triv" : tactic
 
-macro_rules
-  | `(tactic| ssr_triv) => `(tactic| trivial)
+macro_rules |
+  `(tactic| ssr_triv) => `(tactic|
+    try solve| repeat (constructor <;> intros) <;> trivial)
+macro_rules |
+  `(tactic| ssr_triv) => `(tactic|
+    try solve| repeat (constructor <;> intros) <;> simp_all)
+
 
 partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfoContext stx $ newTactic do
     let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
@@ -114,11 +119,11 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfo
 
 
     -- automations
-    | `(ssr_intro| //) => newTactic do run (stx:=stx) `(tactic| try solve | intros <;> ssr_triv )
+    | `(ssr_intro| //) => newTactic do run (stx:=stx) `(tactic| try solve | ((intros; ssr_triv); try (intros; simp_all; ssr_triv)) )
     | `(ssr_intro| /=) => newTactic do run (stx:=stx) `(tactic| dsimp)
     | `(ssr_intro| /==) => newTactic do run (stx:=stx) `(tactic| simp)
-    | `(ssr_intro| //=) => newTactic do run (stx:=stx) `(tactic| try moveR; try solve | intros <;> ssr_triv )
-    | `(ssr_intro| //==) => newTactic do run (stx:=stx) `(tactic| try move; try solve | intros <;> ssr_triv )
+    | `(ssr_intro| //=) => newTactic do run (stx:=stx) `(tactic| try dsimp; try solve | ((intros; ssr_triv); try (intros; simp_all; ssr_triv)) )
+    | `(ssr_intro| //==) => newTactic do run (stx:=stx) `(tactic| try simp; try solve | ((intros; ssr_triv); try (intros; simp_all; ssr_triv)) )
 
     -- destructs
     | `(ssr_intro| []) => newTactic do run (stx:=stx) `(tactic| scase)
@@ -180,8 +185,18 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfo
     | _ => throwErrorAt stx "Unknown action"
 
 
-elab t:tactic "=>" i:ssr_intro is:ssr_intros : tactic => do
-  run `(tactic|$t); elabSsr i; elabSsr.many is
+elab t:tactic "=> " i:ssr_intro is:ssr_intros : tactic => do
+  run `(tactic|$t);
+  (match i with
+  | `(ssr_intro| [] ) => allGoal $ elabSsr i
+  | `(ssr_intro| [ $[$is:ssr_intros]|* ] ) => elabSsr i
+  | _ => allGoal $ elabSsr i);
+  tryGoal $ elabSsr.many is
+
+elab "sby " t:tacticSeq : tactic => do
+   evalTactic t.raw
+   tryGoal $ allGoal $
+      run `(tactic| solve | move=> // | moveR=> // | skip=> //)
 
 -- inductive foo : Int -> Type where
 --   | a (b : Bool) (eq : b = b) (x : Int) (eqq : if b then x > 0 else x < 0)

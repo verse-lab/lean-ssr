@@ -25,7 +25,7 @@ elab "elim" : tactic => newTactic do
     run `(tactic| unhygienic induction $name:ident)
     newTactic $ allGoal do
       let hypsNew <- getLCtx
-      IO.println s! "{hypsNew.decls.toArray.map (fun x => LocalDecl.userName <$> x)}"
+      -- IO.println s! "{hypsNew.decls.toArray.map (fun x => LocalDecl.userName <$> x)}"
       for hyp in hypsNew do
         unless hyps.findFromUserName? hyp.userName |> Option.isSome do
           tryGoal $ run `(tactic| revert $(mkIdent hyp.userName):ident)
