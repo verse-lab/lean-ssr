@@ -141,9 +141,9 @@ theorem nth_index (s : Seq α) : x ∈ s → nth x0 s (index x s) = x := by sorr
 theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by sorry
 @[simp] theorem size_belast : size (belast x s) = size s := by sorry
 
+-- def elabSrwPos (stx : TSyntax `srwPos) : TermM Expr
 
 /- should implement a case_if tactic -/
-/- srw -/
 theorem subseqP (s1 s2 : Seq α) :
   (subseq s1 s2) <-> (exists m, size m = size s2 /\ s1 = mask m s2) := by
   elim: s2 s1=> [| s2 IHs2 y] [|s1 x]
@@ -176,12 +176,8 @@ theorem subseqP (s1 s2 : Seq α) :
   rw [<-cat_take_drop i s2, def_m_i, <-cat_cons]
   shave sz_i_s2: size (take i s2) = i
   { simp; omega }
-  rw [lastI, cat_rcons, mask_cat]; rw [mask_cat]; simp
-  { rw [drop_nth true]=> //
-    rw (config := {occs := .pos [1]}) [<-h, nth_index]=> //
-    sby rw [<-index_mem] }
-  all_goals simp_all [-size_take]
-
+  srw lastI cat_rcons ?mask_cat ?size_belast ?sz_i_s2 //==
+  sby srw (drop_nth true) // -[1]h nth_index // -index_mem
 
 
 
