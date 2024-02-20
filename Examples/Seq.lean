@@ -17,6 +17,8 @@ variable {α : Type} [DecidableEq α]
 def size0nil (s : Seq α) : size s = 0 -> s = [] := by
   sby scase: s
 
+
+
 @[simp] def beq : Seq α -> Seq α -> Bool
   | [], [] => true
   | x :: xs, y :: ys => x = y /\ beq xs ys
@@ -31,6 +33,7 @@ def nilp (s : Seq α) : Bool := size s = 0
 instance : DecidableEq (Seq α) := by
   move=> x y; apply (decidable_of_bool (beq x y))
   sby elim: x y=> [[]|???[]]
+
 
 
 def mask : Seq Bool -> Seq α -> Seq α
@@ -155,7 +158,7 @@ theorem subseqP (s1 s2 : Seq α) :
   generalize h : (index true m) = i at *
   shave def_m_i : take i m = nseq false (size (take i m))
   { simp [all_nthP true]=> j le; srw nth_take
-    { shave // : ¬nth true m j; apply before_find (· = _)
+    { shave//: ¬nth true m j; apply before_find (· = _)
       scase_if: le <;> srw index at h <;> omega }
     scase_if: le=> //== ? le
     sby apply (Nat.lt_of_lt_of_le le) }

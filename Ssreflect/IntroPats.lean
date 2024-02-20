@@ -184,6 +184,9 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfo
       for i in is do allGoal $ elabSsr i
     | _ => throwErrorAt stx "Unknown action"
 
+def isize : TSyntax `ssr_intros -> MetaM Nat
+   | `(ssr_intros| $[$is:ssr_intro] *) => return is.size
+   | _ => throwError "unsupported syntax"
 
 elab t:tactic "=> " i:ssr_intro is:ssr_intros : tactic => do
   run `(tactic|$t);
@@ -191,7 +194,9 @@ elab t:tactic "=> " i:ssr_intro is:ssr_intros : tactic => do
   | `(ssr_intro| [] ) => allGoal $ elabSsr i
   | `(ssr_intro| [ $[$is:ssr_intros]|* ] ) => elabSsr i
   | _ => allGoal $ elabSsr i);
-  tryGoal $ elabSsr.many is
+  if (<- getUnsolvedGoals).length = 0 && (<-  isize is) = 0 then
+    return ()
+  else elabSsr.many is
 
 elab "sby " t:tacticSeq : tactic => do
    evalTactic t.raw
