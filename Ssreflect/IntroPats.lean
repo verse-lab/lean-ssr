@@ -120,8 +120,8 @@ partial def elabSsr (stx :  TSyntax `ssr_intro) : TacticM Unit := withTacticInfo
 
     -- automations
     | `(ssr_intro| //) => newTactic do run (stx:=stx) `(tactic| try solve | ((intros; ssr_triv); try (intros; simp_all; ssr_triv)) )
-    | `(ssr_intro| /=) => newTactic do run (stx:=stx) `(tactic| dsimp)
-    | `(ssr_intro| /==) => newTactic do run (stx:=stx) `(tactic| simp)
+    | `(ssr_intro| /=) => newTactic do run (stx:=stx) `(tactic| try dsimp)
+    | `(ssr_intro| /==) => newTactic do run (stx:=stx) `(tactic| try simp)
     | `(ssr_intro| //=) => newTactic do run (stx:=stx) `(tactic| try dsimp; try solve | ((intros; ssr_triv); try (intros; simp_all; ssr_triv)) )
     | `(ssr_intro| //==) => newTactic do run (stx:=stx) `(tactic| try simp; try solve | ((intros; ssr_triv); try (intros; simp_all; ssr_triv)) )
 
@@ -196,7 +196,7 @@ elab t:tactic "=> " i:ssr_intro is:ssr_intros : tactic => do
 elab "sby " t:tacticSeq : tactic => do
    evalTactic t.raw
    tryGoal $ allGoal $
-      run `(tactic| solve | move=> // | moveR=> // | skip=> //)
+      run `(tactic| solve | move=> // | moveR=> // | skip=> //  )
 
 -- inductive foo : Int -> Type where
 --   | a (b : Bool) (eq : b = b) (x : Int) (eqq : if b then x > 0 else x < 0)
