@@ -199,9 +199,9 @@ elab t:tactic "=> " i:ssr_intro is:ssr_intros : tactic => do
   else elabSsr.many is
 
 elab "sby " t:tacticSeq : tactic => do
-   evalTactic t.raw
-   tryGoal $ allGoal $
-      run `(tactic| solve | move=> // | moveR=> // | skip=> //  )
+  evalTactic t.raw
+  unless (<- getUnsolvedGoals).length = 0 do
+    allGoal $ run `(tactic| solve | move=> // | moveR=> // | skip=> //  )
 
 -- inductive foo : Int -> Type where
 --   | a (b : Bool) (eq : b = b) (x : Int) (eqq : if b then x > 0 else x < 0)
