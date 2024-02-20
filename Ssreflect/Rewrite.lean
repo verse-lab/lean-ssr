@@ -3,9 +3,11 @@ import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Ssreflect.IntroPats
+import Lean.Parser.Tactic
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
+open Lean.Parser.Tactic
 
 declare_syntax_cat srwIter
 declare_syntax_cat srwTerm
@@ -17,7 +19,7 @@ syntax "[" (num)* "]" : srwPos
 syntax atomic("[" noWs "-") (num)* "]" : srwPos
 syntax (ident <|> ("(" term ")")) : srwTerm
 syntax srwRule := ((srwDir)? (srwIter)? (srwPos)? srwTerm) <|> "//" <|> "/=" <|> "//=" <|> "/==" <|> "//=="
-syntax (name := srw) "srw" (ppSpace colGt srwRule)* : tactic
+syntax (name := srw) "srw" (ppSpace colGt srwRule)* (location)? : tactic
 
 syntax "repeat! " tacticSeq : tactic
 macro_rules
@@ -59,7 +61,7 @@ partial def macroCfg (stx : TSyntax `srwPos) : MacroM $ TSyntax `term :=
   | _ => Macro.throwErrorAt stx "Unsupported syntax for 'srw' positions"
 
 
-def evalSrwRule : Tactic
+def evalSrwRule (l : Option (TSyntax `Lean.Parser.Tactic.location)) : Tactic
   | `(srwRule| $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm) => do
       withTacticInfoContext t $ do
       let t' := match t with
@@ -73,8 +75,8 @@ def evalSrwRule : Tactic
         `(term| {occs := $cfg})
       | _ => `(term| {occs := .all})
       let r <- match d with
-        | some _ => `(tactic| rw (config := $cfg) [<-$t:term])
-        | none   => `(tactic| rw (config := $cfg) [$t:term])
+        | some _ => `(tactic| rw (config := $cfg) [<-$t:term] $(l)?)
+        | none   => `(tactic| rw (config := $cfg) [$t:term] $(l)?)
       match i with
       | some i =>
           match i with
@@ -96,9 +98,9 @@ def evalSrwRule : Tactic
 
 @[tactic srw]
 def evalSrw : Tactic
-  | `(tactic| srw $[$rs:srwRule]*) =>
+  | `(tactic| srw $[$rs:srwRule]* $l:location ?) =>
     for r in rs do
-      allGoal $ evalSrwRule r
+      allGoal $ evalSrwRule l r
   | _ => throwError "unsupported syntax for srw tactic"
 
 
