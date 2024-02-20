@@ -14,6 +14,5 @@ elab "shave" is:ssr_intros ":" t:term : tactic => do
   let goals <-getUnsolvedGoals
   setGoals [goal]
   run `(tactic| revert $h)
-  elabSsr.many is
-  let goal <- getMainGoal
-  setGoals [goals[1]!, goal]
+  tryGoal $ elabSsr.many is
+  setGoals $ goals ++ (<-getUnsolvedGoals)

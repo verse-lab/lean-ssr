@@ -155,23 +155,19 @@ theorem subseqP (s1 s2 : Seq α) :
   generalize h : (index true m) = i at *
   shave def_m_i : take i m = nseq false (size (take i m))
   { simp [all_nthP true]=> j le; srw nth_take
-    { have h : ¬ (nth true m j = true) := by
-        apply (before_find (· = true))
-        { scase_if: le <;> srw index at h <;> omega }
-      simp_all }
+    { shave // : ¬nth true m j; apply before_find (· = _)
+      scase_if: le <;> srw index at h <;> omega }
     scase_if: le=> //== ? le
     sby apply (Nat.lt_of_lt_of_le le) }
   shave lt_i_m : i < size m
-  { false_or_by_contra;
-    srw take_oversize // at def_m_i
+  { false_or_by_contra; srw take_oversize // at def_m_i
     sby srw def_m_i mask_false at def_s1 }
   simp [-all_pred1P, lt_i_m] at def_m_i
   exists (take i m ++ drop (i+1) m); constructor
   { simp_all; omega }
   move: (congrArg behead def_s1)=> /== ->
   srw -[1](cat_take_drop i m) -(cat_take_drop i s2) def_m_i -cat_cons
-  shave sz_i_s2: size (take i s2) = i
-  { simp; omega }
+  shave sz_i_s2: size (take i s2) = i; simp; omega
   srw lastI cat_rcons ?mask_cat ?size_belast ?sz_i_s2 //==
   sby srw (drop_nth true) // -[1]h nth_index // -index_mem
 
