@@ -83,7 +83,7 @@ We support `shave intro_pats : ty` tactic. Same as in SSReflect, it asserts a te
 
 ### SSReflect version of `rewrite` tactic
 
-We support SSReflect version of `rewrite`. The general syntax of it is 
+We support SSReflect version of `rewrite`. The general syntax for it is 
 ```lean
 srw ([-] [? <|> !] [ [[-] pos*] ] trm)* [at loc]
 ```
