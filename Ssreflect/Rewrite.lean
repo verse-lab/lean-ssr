@@ -16,7 +16,7 @@ syntax "-" : srwDir
 syntax "[" (num)* "]" : srwPos
 syntax atomic("[" noWs "-") (num)* "]" : srwPos
 syntax (ident <|> ("(" term ")")) : srwTerm
-syntax srwRule := (srwDir)? (srwIter)? (srwPos)? srwTerm
+syntax srwRule := ((srwDir)? (srwIter)? (srwPos)? srwTerm) <|> "//" <|> "/=" <|> "//=" <|> "/==" <|> "//=="
 syntax (name := srw) "srw" (ppSpace colGt srwRule)* : tactic
 
 syntax "repeat! " tacticSeq : tactic
@@ -59,8 +59,8 @@ partial def macroCfg (stx : TSyntax `srwPos) : MacroM $ TSyntax `term :=
   | _ => Macro.throwErrorAt stx "Unsupported syntax for 'srw' positions"
 
 
-@[tactic srw] partial def evalSrw : Tactic
-  | `(tactic| srw $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm $rw:srwRule*) => do
+def evalSrwRule : Tactic
+  | `(srwRule| $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm) => do
       withTacticInfoContext t $ do
       let t' := match t with
         | `(srwTerm| ($t:term)) => some t
@@ -82,8 +82,23 @@ partial def macroCfg (stx : TSyntax `srwPos) : MacroM $ TSyntax `term :=
           | `(srwIter| !) => run (stx := t) `(tactic| (repeat! ($r:tactic)))
           | _ => throwErrorAt i "sould be either ? or !"
       | none => run (stx := t) (return r)
-      allGoal $ run `(tactic| srw $rw*)
-  | `(tactic| srw) => tryGoal $ run `(tactic| skip)
+  | `(srwRule| //) => do
+    elabSsr (<- `(ssr_intro| //))
+  | `(srwRule| //=) => do
+    elabSsr (<- `(ssr_intro| //=))
+  | `(srwRule| /=) => do
+    elabSsr (<- `(ssr_intro| /=))
+  | `(srwRule| //==) => do
+    elabSsr (<- `(ssr_intro| //==))
+  | `(srwRule| /==) => do
+    elabSsr (<- `(ssr_intro| /==))
+  | _ => throwError "unsupported syntax for srw tactic"
+
+@[tactic srw]
+def evalSrw : Tactic
+  | `(tactic| srw $[$rs:srwRule]*) =>
+    for r in rs do
+      allGoal $ evalSrwRule r
   | _ => throwError "unsupported syntax for srw tactic"
 
 
