@@ -149,7 +149,7 @@ theorem subseqP (s1 s2 : Seq α) :
   { sby simp }
   { sby simp; exists (nseq false (Nat.succ (size s2))) }
   simp [IHs2]; constructor=> [] m []def_s1 sz_m
-  { sby exists ((x = y) :: m); simp [<-def_s1]; by_cases (x = y) }
+  { sby exists ((x = y) :: m); simp [<-def_s1]; scase_if }
   scase_if=> ne_xy; rotate_right
   { sby scase: m def_s1 sz_m=> [|m[]] //==-><-; exists m }
   generalize h : (index true m) = i at *
@@ -157,8 +157,7 @@ theorem subseqP (s1 s2 : Seq α) :
   { simp [all_nthP true]=> j le; srw nth_take
     { have h : ¬ (nth true m j = true) := by
         apply (before_find (· = true))
-        { by_cases h' : (i < size m)<;> simp [h'] at le
-          all_goals srw index at h; omega }
+        { scase_if: le <;> srw index at h <;> omega }
       simp_all }
     scase_if: le=> //== ? le
     sby apply (Nat.lt_of_lt_of_le le) }
