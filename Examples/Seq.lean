@@ -141,8 +141,6 @@ theorem nth_index (s : Seq α) : x ∈ s → nth x0 s (index x s) = x := by sorr
 theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by sorry
 @[simp] theorem size_belast : size (belast x s) = size s := by sorry
 
--- def elabSrwPos (stx : TSyntax `srwPos) : TermM Expr
-
 /- should implement a case_if tactic -/
 theorem subseqP (s1 s2 : Seq α) :
   (subseq s1 s2) <-> (exists m, size m = size s2 /\ s1 = mask m s2) := by
@@ -152,7 +150,7 @@ theorem subseqP (s1 s2 : Seq α) :
   { sby simp; exists (nseq false (Nat.succ (size s2))) }
   simp [IHs2]; constructor=> [] m []def_s1 sz_m
   { sby exists ((x = y) :: m); simp [<-def_s1]; by_cases (x = y) }
-  by_cases ne_xy : (x = y) <;> simp [ne_xy]; rotate_right
+  scase_if=> ne_xy; rotate_right
   { sby scase: m def_s1 sz_m=> [|m[]] //==-><-; exists m }
   generalize h : (index true m) = i at *
   shave def_m_i : take i m = nseq false (size (take i m))
@@ -162,7 +160,7 @@ theorem subseqP (s1 s2 : Seq α) :
         { by_cases h' : (i < size m)<;> simp [h'] at le
           all_goals srw index at h; omega }
       simp_all }
-    by_cases h : (i < size m) <;> simp [h] at le=> //
+    scase_if: le=> //== ? le
     sby apply (Nat.lt_of_lt_of_le le) }
   shave lt_i_m : i < size m
   { false_or_by_contra;
