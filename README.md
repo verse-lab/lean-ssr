@@ -77,7 +77,11 @@ macro "pat" : ssr_intro => `(ssr_intro| /[tac t])
 
 We also implement `:` tactical, which behaves in the same way as is does in SSReflect. `tac: r_1 r_2 .. r_n` will revert all `r_i`s back to the goal and then executes tactic `tac`. Note that if you put `r_i` in parentheses `(r_i)`, `:` will revert `r_i` keeping a copy of it in the context. 
 
+### SSReflect version of `have` tactic
+
+We also support `shave intro_pats : ty` tactic. Same as in SSReflect, it asserts a term of type `ty` (introducing a new goal for it), puts it on the proof stack, and runs `intro_pats`.
+
 
 ### Examples
 
-You can find SSL use case examples at [TODO]
+You can find SSL use case examples at `Examples` folder
