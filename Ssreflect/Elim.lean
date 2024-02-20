@@ -121,7 +121,6 @@ private def evalP : TacticM Expr := withMainContext do
 elab "scase_if" : tactic => do
   let ifc <- evalP
   let t <- PrettyPrinter.delab ifc
-  dbg_trace s! "{t}"
   let name <- fresh "H"
   run `(tactic| by_cases $name : $t)
   allGoal $ run `(tactic| try simp only [↓reduceIte, $name:term])
