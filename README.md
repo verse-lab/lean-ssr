@@ -39,6 +39,7 @@ Here we list all features we support at the moment.
 ### Tactics
 
 1. `scase`: equivalent to SSReflect's `case`
+6. `scase_if`: does case analysis on the first `if` statement
 2. `elim`: equivalent to SSReflect's `elim`
 3. `move`:  Reduces goal to the weak head normal form
 4. `moveR`: like `move` but only reduces `[@ reducable]` definitions
