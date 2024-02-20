@@ -63,7 +63,6 @@ partial def macroCfg (stx : TSyntax `srwPos) : MacroM $ TSyntax `term :=
 
 def evalSrwRule (l : Option (TSyntax `Lean.Parser.Tactic.location)) : Tactic
   | `(srwRule| $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm) => do
-      withTacticInfoContext t $ do
       let t' := match t with
         | `(srwTerm| ($t:term)) => some t
         | `(srwTerm| $t:ident) => some t
@@ -84,23 +83,18 @@ def evalSrwRule (l : Option (TSyntax `Lean.Parser.Tactic.location)) : Tactic
           | `(srwIter| !) => run (stx := t) `(tactic| (repeat! ($r:tactic)))
           | _ => throwErrorAt i "sould be either ? or !"
       | none => run (stx := t) (return r)
-  | `(srwRule| //) => do
-    elabSsr (<- `(ssr_intro| //))
-  | `(srwRule| //=) => do
-    elabSsr (<- `(ssr_intro| //=))
-  | `(srwRule| /=) => do
-    elabSsr (<- `(ssr_intro| /=))
-  | `(srwRule| //==) => do
-    elabSsr (<- `(ssr_intro| //==))
-  | `(srwRule| /==) => do
-    elabSsr (<- `(ssr_intro| /==))
+  | `(srwRule| //)   => do elabSsr (<- `(ssr_intro| //))
+  | `(srwRule| /=)   => do elabSsr (<- `(ssr_intro| /=))
+  | `(srwRule| //=)  => do elabSsr (<- `(ssr_intro| //=))
+  | `(srwRule| /==)  => do elabSsr (<- `(ssr_intro| /==))
+  | `(srwRule| //==) => do elabSsr (<- `(ssr_intro| //==))
   | _ => throwError "unsupported syntax for srw tactic"
 
 @[tactic srw]
 def evalSrw : Tactic
   | `(tactic| srw $[$rs:srwRule]* $l:location ?) =>
     for r in rs do
-      allGoal $ evalSrwRule l r
+      allGoal $ withTacticInfoContext r $ evalSrwRule l r
   | _ => throwError "unsupported syntax for srw tactic"
 
 
