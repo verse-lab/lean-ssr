@@ -178,8 +178,4 @@ theorem subseqP (s1 s2 : Seq α) :
   srw lastI cat_rcons ?mask_cat ?size_belast ?sz_i_s2 //==
   sby srw (drop_nth true) // -[1]h nth_index // -index_mem
 
-
-
-
-
 end seq
