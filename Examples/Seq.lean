@@ -17,8 +17,6 @@ variable {α : Type} [DecidableEq α]
 def size0nil (s : Seq α) : size s = 0 -> s = [] := by
   sby scase: s
 
-
-
 @[simp] def beq : Seq α -> Seq α -> Bool
   | [], [] => true
   | x :: xs, y :: ys => x = y /\ beq xs ys
@@ -66,7 +64,7 @@ def mask : Seq Bool -> Seq α -> Seq α
   sby elim: n
 
 @[simp] theorem mask_false (s : Seq α) (n : Nat) : mask (nseq false n) s = [] := by
-  sby elim: s n=> [|???] [|?]
+  sby elim: s n=> [|???][]
 
 @[simp] def find (p : α -> Prop) [DecidablePred p] : Seq α -> Nat
   | [] => 0
@@ -144,7 +142,6 @@ theorem nth_index (s : Seq α) : x ∈ s → nth x0 s (index x s) = x := by sorr
 theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by sorry
 @[simp] theorem size_belast : size (belast x s) = size s := by sorry
 
-/- should implement a case_if tactic -/
 theorem subseqP (s1 s2 : Seq α) :
   (subseq s1 s2) <-> (exists m, size m = size s2 /\ s1 = mask m s2) := by
   elim: s2 s1=> [| s2 IHs2 y] [|s1 x]
