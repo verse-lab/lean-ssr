@@ -75,12 +75,31 @@ macro "pat" : ssr_intro => `(ssr_intro| /[tac t])
 
 ### Revert patterns
 
-We also implement `:` tactical, which behaves in the same way as is does in SSReflect. `tac: r_1 r_2 .. r_n` will revert all `r_i`s back to the goal and then executes tactic `tac`. Note that if you put `r_i` in parentheses `(r_i)`, `:` will revert `r_i` keeping a copy of it in the context. 
+We implement `:` tactical, which behaves in the same way as is does in SSReflect. `tac: r_1 r_2 .. r_n` will revert all `r_i`s back to the goal and then executes tactic `tac`. Note that if you put `r_i` in parentheses `(r_i)`, `:` will revert `r_i` keeping a copy of it in the context. 
 
 ### SSReflect version of `have` tactic
 
-We also support `shave intro_pats : ty` tactic. Same as in SSReflect, it asserts a term of type `ty` (introducing a new goal for it), puts it on the proof stack, and runs `intro_pats`.
+We support `shave intro_pats : ty` tactic. Same as in SSReflect, it asserts a term of type `ty` (introducing a new goal for it), puts it on the proof stack, and runs `intro_pats`.
 
+### SSReflect version of `rewrite` tactic
+
+We support SSReflect version of `rewrite`. The general syntax of it is 
+```lean
+srw ([-] [? <|> !] [ [[-] pos*] ] trm)* [at loc]
+```
+where
+1.  `[-]` is responsible for the rewrite direction: empty for direct and `-` for reversed
+2. `[? <|> !]` is responsible for the number of times we rewrite: `?` for 0 and more and `!` for 1 and more
+3. `[ [[-] [pos*] ] ]` is responsible for positions of terms matching `thm` at which we rewrite: `[n_1 n_2 n_3 ...]` for rewriting at all `n_i` positions, `[- n_1 n_2 n_3 ...]` for rewriting at all positions except `n_i` and empty for rewriting at all positions
+4. `thm` for the equality which we want to rewrite 
+5. `[at loc]` for the location at which we rewrite (empty for rewriting in the goal)
+
+You can also use `//`, `/=`, `//=`, `/==` and `//==` inside `srw`. 
+
+example : 
+```lean
+srw -![1 3](cat_take_drop i m) //= -?[- 5 6](cat_take_drop i s2) def_m_i -cat_cons at h |-
+```
 
 ### Examples
 
