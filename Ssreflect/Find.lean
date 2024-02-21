@@ -15,11 +15,11 @@ open Parser
 open Loogle.Find
 open Command
 
-def MessageData.bulletListTypes (xs : Array (MessageData × Format)) : MessageData :=
-  MessageData.joinSep (xs.toList.map (fun x => m!"• " ++ x.1 ++ " : " ++ x.2)) Format.line
+def MessageData.bulletListTypes (xs : Array (MessageData × Expr)) : MessageData :=
+  MessageData.joinSep (xs.toList.map (fun x => m!"\n" ++ "• " ++ x.1 ++ " : " ++ x.2)) Format.line
 
 def MessageData.bulletListOfConstsTypes {m} [Monad m] [MonadEnv m] [MonadError m]
-    (names : Array (Name × Format)) : m MessageData := do
+    (names : Array (Name × Expr)) : m MessageData := do
   let es ← names.mapM $ fun x =>do return (<- mkConstWithLevelParams x.1, x.2)
   pure (MessageData.bulletListTypes (es.map (fun x => (ppConst x.1, x.2))))
 
@@ -32,7 +32,7 @@ elab(name := findSyntax) "#f " args:find_filters : command => liftTermElabM do
         Std.Tactic.TryThis.addSuggestions args <| suggestions.map fun sugg =>
           { suggestion := .tsyntax sugg }
     | .ok result =>
-      let names <- result.hits.mapM $ fun x=> do let ty <- ppExpr x.1.type; return (x.1.name, ty)
+      let names := result.hits.map $ fun x=> (x.1.name, x.1.type)
       Lean.logInfo $ result.header ++ (← MessageData.bulletListOfConstsTypes names)
 
 elab(name := findSyntaxTac) "#f " args:find_filters : tactic => do
@@ -44,5 +44,5 @@ elab(name := findSyntaxTac) "#f " args:find_filters : tactic => do
         Std.Tactic.TryThis.addSuggestions args <| suggestions.map fun sugg =>
           { suggestion := .tsyntax sugg }
     | .ok result =>
-      let names <- result.hits.mapM $ fun x=> do let ty <- ppExpr x.1.type; return (x.1.name, ty)
+      let names := result.hits.map $ fun x=> (x.1.name, x.1.type)
       Lean.logInfo $ result.header ++ (← MessageData.bulletListOfConstsTypes names)
