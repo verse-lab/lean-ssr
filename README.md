@@ -44,6 +44,8 @@ Here we list all features we support at the moment.
 3. `move`:  Reduces goal to the weak head normal form
 4. `moveR`: like `move` but only reduces `[@ reducable]` definitions
 5. `apply t in H`: applies term `t` in hypothesis `H`, and moves the result on top the proof stack. `H` should not necessarily be the first argument of `t`, tactic will figure out which argument to instantiate automatically. It will also instantiate all other arguments of `t` which can be deduced from `H`
+6. `shave`: SSReflect version of `have` (see below)
+6. `srw`: SSReflect version of `rw` (see below)
 
 ### Intro patterns
 
@@ -101,6 +103,10 @@ example :
 ```lean
 srw -![1 3](cat_take_drop i m) //= -?[- 5 6](cat_take_drop i s2) def_m_i -cat_cons at h |-
 ```
+
+### Find Command
+
+`#f` command is equivalent to Loogle's `#find` (so you can also search by names) but will also print types of found constants. You can use inside proofs as well.
 
 ### Examples
 
