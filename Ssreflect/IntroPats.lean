@@ -198,10 +198,23 @@ elab t:tactic "=> " i:ssr_intro is:ssr_intros : tactic => do
     return ()
   else elabSsr.many is
 
-elab "sby " t:tacticSeq : tactic => do
-  evalTactic t.raw
-  unless (<- getUnsolvedGoals).length = 0 do
-    allGoal $ run `(tactic| solve | move=> // | moveR=> // | skip=> //  )
+syntax (name:= sby) "sby " tacticSeq : tactic
+
+@[tactic sby] def elabSby : Tactic
+  | `(tactic| sby%$sby $ts) => do
+    evalTactic ts
+    unless (<- getUnsolvedGoals).length = 0 do
+      tryGoal $ allGoal $ run `(tactic| solve | move=> // | moveR=> // | skip=> //  )
+    unless (<- getUnsolvedGoals).length = 0 do
+      throwErrorAt sby "No applicable tactic"
+  | _ => throwError "Unsupported index for sby"
+
+
+-- elab "sby " t:tacticSeq : tactic => do
+--   evalTactic t.raw
+--   unless (<- getUnsolvedGoals).length = 0 do
+
+--     allGoal $ run `(tactic| solve | move=> // | moveR=> // | skip=> //  )
 
 -- inductive foo : Int -> Type where
 --   | a (b : Bool) (eq : b = b) (x : Int) (eqq : if b then x > 0 else x < 0)
