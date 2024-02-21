@@ -1,10 +1,9 @@
 import Ssreflect.Lang
 import Std.Data.List
 import Std.Tactic.Omega
+import Ssreflect.Find
 
 notation "Seq" => List
-
-#check List.find?_some
 
 namespace seq
 

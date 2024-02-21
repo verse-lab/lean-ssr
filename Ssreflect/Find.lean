@@ -15,8 +15,6 @@ open Parser
 open Loogle.Find
 open Command
 
-#check Format
-
 def MessageData.bulletListTypes (xs : Array (MessageData × Format)) : MessageData :=
   MessageData.joinSep (xs.toList.map (fun x => m!"• " ++ x.1 ++ " : " ++ x.2)) Format.line
 
