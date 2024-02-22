@@ -44,30 +44,34 @@ def fresh [Monad m] [Lean.MonadLCtx m] (suggestion : Lean.Name) : m Lean.Syntax.
   return Lean.mkIdent name
 
 def allGoal [Inhabited α]
-  (tac : TacticM α) (comb : List α -> α := fun _ => default)  : TacticM α := newTactic do
-  let mvarIds ← getGoals
-  let mut mvarIdsNew := #[]
-  let mut ans := []
-  for mvarId in mvarIds do
-    unless (← mvarId.isAssigned) do
-      setGoals [mvarId]
-      let (ans', mvarIdsNew') <- withMainContext do
-        let mut ans := ans
-        let mut mvarIdsNew := mvarIdsNew
-        try
-          let a <- tac
-          ans := a :: ans
-          mvarIdsNew := mvarIdsNew ++ (← getUnsolvedGoals)
-        catch ex =>
-          if (← read).recover then
-            logException ex
-            mvarIdsNew := mvarIdsNew.push mvarId
-          else
-            throw ex
-        return (ans, mvarIdsNew)
-      (ans, mvarIdsNew) := (ans', mvarIdsNew')
-  setGoals mvarIdsNew.toList
-  return comb ans
+  (tac : TacticM α) (comb : List α -> α := fun _ => default)  : TacticM α := do
+  if (<- getUnsolvedGoals).length == 0 then
+    tac
+  else
+    newTactic do
+      let mvarIds ← getGoals
+      let mut mvarIdsNew := #[]
+      let mut ans := []
+      for mvarId in mvarIds do
+        unless (← mvarId.isAssigned) do
+          setGoals [mvarId]
+          let (ans', mvarIdsNew') <- withMainContext do
+            let mut ans := ans
+            let mut mvarIdsNew := mvarIdsNew
+            try
+              let a <- tac
+              ans := a :: ans
+              mvarIdsNew := mvarIdsNew ++ (← getUnsolvedGoals)
+            catch ex =>
+              if (← read).recover then
+                logException ex
+                mvarIdsNew := mvarIdsNew.push mvarId
+              else
+                throw ex
+            return (ans, mvarIdsNew)
+          (ans, mvarIdsNew) := (ans', mvarIdsNew')
+      setGoals mvarIdsNew.toList
+      return comb ans
 
 
 def range (n : Nat) := (List.iota n).reverse.map (fun x => x - 1)
@@ -109,8 +113,9 @@ def _root_.Lean.Syntax.isOfCategories (stx : Syntax) (cats : List Name) : MetaM 
 def _root_.Lean.Syntax.isSeqOfCategory (stx : Syntax) (cats: List Name) : MetaM $ Option Syntax :=
   stx[0].getArgs.findM? fun s => return not (<- cats.anyM (s.isOfCategory ·))
 
+abbrev ElabOne := Tactic -> Tactic
 
-partial def iterateElab (elabOne : HashMap SyntaxNodeKind Tactic) (stx : Syntax) : TacticM Unit := do
+partial def iterateElab (elabOne : HashMap SyntaxNodeKind ElabOne) (stx : Syntax) : TacticM Unit := do
   let ks := keys elabOne
   match <- stx.isSeqOfCategory ks with
   | some stx => throwErrorAt stx "Unsupported syntax1"
@@ -118,6 +123,6 @@ partial def iterateElab (elabOne : HashMap SyntaxNodeKind Tactic) (stx : Syntax)
     for stx in stx[0].getArgs do
       let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
       match <- stx.isSeqOfCategory ks, <- stx.isOfCategories ks with
-      | _     , some n => allGoal $ withTacticInfoContext stx $ elabOne[n].get! stx
-      | none, none   => iterateElab elabOne stx
+      | _     , some n => allGoal $ withTacticInfoContext stx $ elabOne[n].get! (iterateElab elabOne) stx
+      | none, none     => iterateElab elabOne stx
       | _     , _      => dbg_trace s! "{stx[0].getArgs}"; throwErrorAt stx "Unsupported syntax2"

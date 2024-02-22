@@ -84,7 +84,7 @@ def elabSrwRule (l : Option (TSyntax `Lean.Parser.Tactic.location)) : Tactic
 def elabSrw : Tactic
   | `(tactic| srw $rs:srwRules $l:location ?) =>
       iterateElab
-        (HashMap.ofList [(`srwRule, elabSrwRule l), (`ssrTriv, elabSTriv)])
+        (HashMap.ofList [(`srwRule, fun _ => elabSrwRule l), (`ssrTriv, fun _ => elabSTriv)])
         rs
   | _ => throwError "unsupported syntax for srw tactic"
 

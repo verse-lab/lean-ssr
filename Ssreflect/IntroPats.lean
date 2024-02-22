@@ -67,7 +67,7 @@ syntax "/[tac " tactic "]" : ssrIntro
 
 
 
-partial def elabSsr : Tactic := fun stx => newTactic do
+partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => newTactic do
     let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
     match stx with
     -- intros
@@ -125,7 +125,7 @@ partial def elabSsr : Tactic := fun stx => newTactic do
       if goals.length != is.size then
         run (stx := stx) `(tactic| fail "Given { is.size } tactics, but excpected { goals.length }")
       else
-        idxGoal fun i => many is[i]!
+        idxGoal fun i => elabIterate is[i]!
 
     -- top hyps manipulations
     | `(ssrIntro|/[swap]) => newTactic do
@@ -168,26 +168,33 @@ partial def elabSsr : Tactic := fun stx => newTactic do
     | `(ssrIntro| /[tac $t:tactic]) => newTactic do
       run (stx:=stx) `(tactic| $t)
     | _ => throwErrorAt stx "Unknown action"
-  where
-    many (stx : TSyntax `ssrIntros) : TacticM Unit :=
-    match stx with
-    | `(ssrIntros| $[$is:ssrIntro] *) => newTactic do
-      for i in is do allGoal $ elabSsr i
-    | _ => throwErrorAt stx "Unknown action"
+  -- where
+  --   many (stx : TSyntax `ssrIntros) : TacticM Unit :=
+  --   match stx with
+  --   | `(ssrIntros| $[$is:ssrIntro] *) => newTactic do
+  --     for i in is do allGoal $ elabSsr i
+  --   | _ => throwErrorAt stx "Unknown action"
 
-def isize : TSyntax `ssrIntros -> MetaM Nat
-   | `(ssrIntros| $[$is:ssrIntro] *) => return is.size
-   | _ => throwError "unsupported syntax"
+-- def isize : TSyntax `ssrIntros -> MetaM Nat
+--    | `(ssrIntros| $[$is:ssrIntro] *) => return is.size
+--    | _ => throwError "unsupported syntax"
 
-elab t:tactic "=> " i:ssrIntro is:ssrIntros : tactic => do
+elab t:tactic "=> " is:ssrIntros : tactic => do
   run `(tactic|$t);
-  (match i with
-  | `(ssrIntro| [] ) => allGoal $ elabSsr i
-  | `(ssrIntro| [ $[$is:ssrIntros]|* ] ) => elabSsr i
-  | _ => allGoal $ elabSsr i);
-  if (<- getUnsolvedGoals).length = 0 && (<-  isize is) = 0 then
-    return ()
-  else elabSsr.many is
+  iterateElab (HashMap.ofList [
+    (`ssrIntro, elabSsr),
+    (`ssrTriv, fun _ => elabSTriv),
+  ]) is
+
+-- elab t:tactic "=> " i:ssrIntro is:ssrIntros : tactic => do
+--   run `(tactic|$t);
+--   (match i with
+--   | `(ssrIntro| [] ) => allGoal $ elabSsr i
+--   | `(ssrIntro| [ $[$is:ssrIntros]|* ] ) => elabSsr i
+--   | _ => allGoal $ elabSsr i);
+--   if (<- getUnsolvedGoals).length = 0 && (<-  isize is) = 0 then
+--     return ()
+--   else elabSsr.many is
 
 -- syntax (name:= sby) "sby " tacticSeq : tactic
 
