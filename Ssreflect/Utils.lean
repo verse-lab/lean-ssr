@@ -85,3 +85,39 @@ partial def idxGoal [Inhabited α] (tacs : Nat -> TacticM α)
     newGoals := newGoals ++ (<- getUnsolvedGoals)
   setGoals newGoals.toList
   return comb ans
+
+def keys [BEq α] [Hashable α] (m : HashMap α β) : List α :=
+  m.fold (fun ks k _ => k :: ks) []
+
+
+def _root_.Lean.Syntax.isSeqOfKinds (stx : Syntax) (ks: List SyntaxNodeKind) : Option Syntax :=
+  stx[0].getArgs.find? fun s => ¬ ks.any (s.isOfKind ·)
+
+def _root_.Lean.Syntax.isOfKinds (stx : Syntax) (ks: List SyntaxNodeKind) : Option SyntaxNodeKind :=
+  ks.find? (stx.isOfKind ·)
+
+
+def _root_.Lean.Syntax.isOfCategory (stx : Syntax) (cat : Name) : MetaM Bool := do
+  let env <- getEnv
+  let cats := (Lean.Parser.parserExtension.getState env).categories
+  let some cat := Parser.getCategory cats cat | throwError s!"unknown parser category '{cat}'"
+  return cat.kinds.toList.any (stx.isOfKind ·.1)
+
+def _root_.Lean.Syntax.isOfCategories (stx : Syntax) (cats : List Name) : MetaM $ Option Name := do
+  cats.findM? stx.isOfCategory
+
+def _root_.Lean.Syntax.isSeqOfCategory (stx : Syntax) (cats: List Name) : MetaM $ Option Syntax :=
+  stx[0].getArgs.findM? fun s => return not (<- cats.anyM (s.isOfCategory ·))
+
+
+partial def iterateElab (elabOne : HashMap SyntaxNodeKind Tactic) (stx : Syntax) : TacticM Unit := do
+  let ks := keys elabOne
+  match <- stx.isSeqOfCategory ks with
+  | some stx => throwErrorAt stx "Unsupported syntax1"
+  | none =>
+    for stx in stx[0].getArgs do
+      let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
+      match <- stx.isSeqOfCategory ks, <- stx.isOfCategories ks with
+      | _     , some n => allGoal $ withTacticInfoContext stx $ elabOne[n].get! stx
+      | none, none   => iterateElab elabOne stx
+      | _     , _      => dbg_trace s! "{stx[0].getArgs}"; throwErrorAt stx "Unsupported syntax2"
