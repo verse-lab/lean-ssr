@@ -56,7 +56,9 @@ partial def macroCfg (stx : TSyntax `srwPos) : MacroM $ TSyntax `term :=
   | _ => Macro.throwErrorAt stx "Unsupported syntax for 'srw' positions"
 
 
-def elabSrwRule (l : Option (TSyntax `Lean.Parser.Tactic.location)) : Tactic
+def elabSrwRule (l : Option (TSyntax `Lean.Parser.Tactic.location)) (stx : Syntax) : TacticM Unit := do
+  withTacticInfoContext (<- getRef) do
+  match stx with
   | `(srwRule| $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm) => do
       let t' := match t with
         | `(srwTerm| ($t:term)) => some t
@@ -93,6 +95,6 @@ def elabSrw : Tactic
   | _ => throwError "unsupported syntax for srw tactic"
 
 
--- example : True -> (True /\ False) /\ (True /\ False) = False := by
---   intro a
---   srw [-1]true_and true_and //==
+example : True -> (True /\ False) /\ (True /\ False) = False := by
+  intro a
+  srw [-1]true_and true_and //==

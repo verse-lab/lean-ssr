@@ -32,7 +32,7 @@ def mkInitialTacticInfoR (stx : Syntax) : TacticM (TacticM Info) := do
 @[inline] def withTacticInfoContextR (stx : Syntax) (x : TacticM α) : TacticM α := do
   withInfoContext x (← mkInitialTacticInfoR stx)
 
-def elabSsrR : Tactic := /-withTacticInfoContextR stx $-/ fun stx =>
+def elabSsrR : Tactic := fun stx =>
   newTactic do
     match stx with
     | `(ssrRevert|$i:ident) => newTactic do

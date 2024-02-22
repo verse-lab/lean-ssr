@@ -127,7 +127,7 @@ partial def iterateElabCore (elabOne : HashMap SyntaxNodeKind ElabOne) (afterMac
         match <- stx'.isSeqOfCategory ks, <- stx'.isOfCategories ks with
         | _     , some n =>
           let wR : _ -> TacticM Unit := if afterMacro then id else withRef stx'
-          allGoal $ wR do withTacticInfoContext (<- getRef) $ elabOne[n].get! (iterateElabCore elabOne afterMacro) stx'
+          allGoal $ wR $ elabOne[n].get! (iterateElabCore elabOne afterMacro) stx'
         | none, none     => withRef stx do iterateElabCore elabOne afterMacro stx'
         | _     , _      => dbg_trace s! "{stx'[0].getArgs}"; throwErrorAt stx' "Unsupported syntax2"
 

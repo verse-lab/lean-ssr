@@ -56,7 +56,9 @@ syntax "{}" ident : ssrIntro
 
 -- tactics
 
-partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => newTactic do
+partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => do
+   withTacticInfoContext (<- getRef) do
+   newTactic do
     let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
     match stx with
     -- intros
@@ -106,7 +108,7 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => newTactic do
         let goalsMsg := MessageData.joinSep (goals.map MessageData.ofGoal) m!"\n\n"
         throwErrorAt stx "Given { is.size } tactics, but excpected { goals.length }\n{goalsMsg}"
       else
-        idxGoal fun i => withTacticInfoContext is[i]! $ elabIterate is[i]!
+         idxGoal fun i => elabIterate is[i]!
     | `(ssrIntro| ![ $[$is:ssrIntros]|* ] ) => do
       run (stx:=stx) `(tactic|elim)
       let goals ← getUnsolvedGoals
@@ -174,16 +176,16 @@ elab t:tactic "=> " i:ssrIntro is:ssrIntros : tactic => do
   run `(tactic|$t);
   match i with
   | `(ssrIntro| [ $_:ssrIntros|* ]) =>
-    elabSsr elabSsrs i
+    withRef i do elabSsr elabSsrs i
     allGoal $ elabSsrs is
   | _ =>
-    allGoal $ withTacticInfoContext i $ elabSsr elabSsrs i
+    allGoal $ withRef i do elabSsr elabSsrs i
     allGoal $ elabSsrs is
 
--- inductive True3 where
---   | a1 (x : Nat) (y : True3) : True3
---   | b2 (x : Nat) : True3
---   | c3 (x : Nat) : True3
+inductive True3 where
+  | a1 (x : Nat) (y : True3) : True3
+  | b2 (x : Nat) : True3
+  | c3 (x : Nat) : True3
 
--- example : True -> True3 -> True := by
---   skip=> a [ ? | ? | ? ]
+example : True3 -> True3 -> True := by
+  skip=> [ ? | ? | ? ]
