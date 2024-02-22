@@ -7,12 +7,12 @@ import Ssreflect.IntroPats
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 
-elab "shave" is:ssr_intros ":" t:term : tactic => do
+elab "shave" is:ssrIntros ":" t:term : tactic => do
   let h <- fresh "H"
   run `(tactic| have $h : $t := ?_)
   let goal <- getMainGoal
   let goals <-getUnsolvedGoals
   setGoals [goal]
   run `(tactic| revert $h)
-  tryGoal $ elabSsr.many is
+  tryGoal $ elabSsrs is
   setGoals $ goals ++ (<-getUnsolvedGoals)

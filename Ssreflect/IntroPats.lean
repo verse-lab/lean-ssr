@@ -4,8 +4,8 @@ import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Ssreflect.Elim
 import Ssreflect.ApplyIn
-import Ssreflect.Move
 import Ssreflect.Done
+import Ssreflect.Basic
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
@@ -24,7 +24,7 @@ private partial def introsDep : TacticM Unit := do
   | _ => pure ()
 
 declare_syntax_cat ssrIntro
-syntax ssrIntros := (ppSpace colGt (ssrIntro <|> ssrTriv))*
+syntax ssrIntros := (ppSpace colGt (ssrIntro <|> ssrTriv <|> ssrBasic))*
 -- intros
 syntax ident : ssrIntro
 syntax "?" : ssrIntro
@@ -41,13 +41,6 @@ syntax "/(" term ")" : ssrIntro
 syntax "/" ident : ssrIntro
 syntax "/(_" term ")" : ssrIntro
 
--- automations
--- syntax "//" : ssrIntro
--- syntax "/==" : ssrIntro
--- syntax "/=" : ssrIntro
--- syntax "//="  : ssrIntro
--- syntax "//=="  : ssrIntro
-
 -- destructs
 syntax "[ ]" : ssrIntro
 syntax "[" sepBy1(ssrIntros, "|") "]" : ssrIntro
@@ -59,14 +52,9 @@ syntax "/[apply]" : ssrIntro
 syntax "/[dup]" : ssrIntro
 
 -- clears
-syntax "{" (ppSpace colGt term:max)+ "}" : ssrIntro
 syntax "{}" ident : ssrIntro
 
 -- tactics
-syntax "/[tac " tactic "]" : ssrIntro
-
-
-
 
 partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => newTactic do
     let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
@@ -159,15 +147,10 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => newTactic do
       run (stx:=stx) `(tactic| clear $n1)
 
     -- clears
-    | `(ssrIntro| { $ts:term* }) => newTactic do
-      run (stx:=stx) `(tactic| clear $ts*)
     | `(ssrIntro| {}$i:ident ) => newTactic do
       run (stx:=stx) `(tactic| clear $i)
       run (stx:=stx) `(tactic| intros $i)
 
-    -- tactics
-    | `(ssrIntro| /[tac $t:tactic]) => newTactic do
-      run (stx:=stx) `(tactic| $t)
     | _ => throwErrorAt stx "Unknown action"
   -- where
   --   many (stx : TSyntax `ssrIntros) : TacticM Unit :=
@@ -180,10 +163,14 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => newTactic do
 --    | `(ssrIntros| $[$is:ssrIntro] *) => return is.size
 --    | _ => throwError "unsupported syntax"
 
-elab t:tactic "=> " i:ssrIntro is:ssrIntros : tactic => do
-  let elabSsrs := iterateElab (HashMap.ofList [
+def elabSsrs :=
+  iterateElab (HashMap.ofList [
     (`ssrIntro, elabSsr),
-    (`ssrTriv, fun _ => elabSTriv)])
+    (`ssrTriv, fun _ => elabSTriv),
+    (`ssrBasic, fun _ => elabBasic)
+  ])
+
+elab t:tactic "=> " i:ssrIntro is:ssrIntros : tactic => do
   run `(tactic|$t);
   match i with
   | `(ssrIntro| [ $_:ssrIntros|* ]) =>
@@ -199,4 +186,4 @@ elab t:tactic "=> " i:ssrIntro is:ssrIntros : tactic => do
 --   | c3 (x : Nat) : True3
 
 -- example : True -> True3 -> True := by
---   skip=> ? [ ? | ? | ? ]
+--   skip=> a [ ? | ? | ? ]
