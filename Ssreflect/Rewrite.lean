@@ -25,7 +25,7 @@ syntax (name := srw) "srw" srwRules (location)? : tactic
 
 syntax "repeat! " tacticSeq : tactic
 macro_rules
-  | `(tactic| repeat! $seq) => `(tactic| ($seq); repeat $seq)
+  | `(tactic| repeat! $seq) => `(tactic| ($seq); repeat' $seq)
 
 
 partial def macroCfgPos (stx : TSyntax `srwPos) : MacroM $ TSyntax `term :=
@@ -73,7 +73,7 @@ def elabSrwRule (l : Option (TSyntax `Lean.Parser.Tactic.location)) : Tactic
       match i with
       | some i =>
           match i with
-          | `(srwIter| ?) => run (stx := t) `(tactic| (repeat ($r:tactic)))
+          | `(srwIter| ?) => run (stx := t) `(tactic| (repeat' ($r:tactic)))
           | `(srwIter| !) => run (stx := t) `(tactic| (repeat! ($r:tactic)))
           | _ => throwErrorAt i "sould be either ? or !"
       | none => run (stx := t) (return r)
@@ -90,4 +90,4 @@ def elabSrw : Tactic
 
 
 -- example : (True /\ False) /\ (True /\ False) = False := by
---   srw [-1]true_and true_and //==
+  -- srw [-1]true_and true_and //==

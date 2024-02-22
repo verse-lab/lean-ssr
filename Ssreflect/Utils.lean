@@ -115,14 +115,34 @@ def _root_.Lean.Syntax.isSeqOfCategory (stx : Syntax) (cats: List Name) : MetaM 
 
 abbrev ElabOne := Tactic -> Tactic
 
-partial def iterateElab (elabOne : HashMap SyntaxNodeKind ElabOne) (stx : Syntax) : TacticM Unit := do
-  let ks := keys elabOne
-  match <- stx.isSeqOfCategory ks with
-  | some stx => throwErrorAt stx "Unsupported syntax1"
-  | none =>
-    for stx in stx[0].getArgs do
-      let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
-      match <- stx.isSeqOfCategory ks, <- stx.isOfCategories ks with
-      | _     , some n => allGoal $ withTacticInfoContext stx $ elabOne[n].get! (iterateElab elabOne) stx
-      | none, none     => iterateElab elabOne stx
-      | _     , _      => dbg_trace s! "{stx[0].getArgs}"; throwErrorAt stx "Unsupported syntax2"
+partial def iterateElabCore (elabOne : HashMap SyntaxNodeKind ElabOne) (afterMacro : Bool) (stx : Syntax) : TacticM Unit := do
+  -- dbg_trace s! "{afterMacro}"
+    let ks := keys elabOne
+    match <- stx.isSeqOfCategory ks with
+    | some stx => throwErrorAt stx "Unsupported syntax1"
+    | none =>
+      for stx in stx[0].getArgs do
+        let stx' := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
+        let afterMacro := afterMacro || (stx != stx')
+        match <- stx'.isSeqOfCategory ks, <- stx'.isOfCategories ks with
+        | _     , some n =>
+          let wR : _ -> TacticM Unit := if afterMacro then id else withRef stx'
+          allGoal $ wR do withTacticInfoContext (<- getRef) $ elabOne[n].get! (iterateElabCore elabOne afterMacro) stx'
+        | none, none     => withRef stx do iterateElabCore elabOne afterMacro stx'
+        | _     , _      => dbg_trace s! "{stx'[0].getArgs}"; throwErrorAt stx' "Unsupported syntax2"
+
+def iterateElab (elabOne : HashMap SyntaxNodeKind ElabOne) (stx : Syntax) : TacticM Unit :=
+  withRef stx do iterateElabCore elabOne false stx
+
+
+-- partial def iterateElab (elabOne : HashMap SyntaxNodeKind ElabOne) (stx : Syntax) : TacticM Unit := do
+--   let ks := keys elabOne
+--   match <- stx.isSeqOfCategory ks with
+--   | some stx => throwErrorAt stx "Unsupported syntax1"
+--   | none =>
+--     for stx in stx[0].getArgs do
+--       let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
+--       match <- stx.isSeqOfCategory ks, <- stx.isOfCategories ks with
+--       | _     , some n => allGoal $ withTacticInfoContext stx $ elabOne[n].get! (iterateElab elabOne) stx
+--       | none, none     => iterateElab elabOne stx
+--       | _     , _      => dbg_trace s! "{stx[0].getArgs}"; throwErrorAt stx "Unsupported syntax2"

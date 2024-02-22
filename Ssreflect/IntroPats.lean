@@ -51,6 +51,7 @@ syntax "/(_" term ")" : ssrIntro
 -- destructs
 syntax "[ ]" : ssrIntro
 syntax "[" sepBy1(ssrIntros, "|") "]" : ssrIntro
+syntax "![" sepBy1(ssrIntros, "|") "]" : ssrIntro
 
 -- top hyps manipulations
 syntax "/[swap]" : ssrIntro
@@ -108,24 +109,24 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => newTactic do
       tryGoal $ run (stx:=stx) `(tactic| clear $name)
       tryGoal $ run (stx:=stx) `(tactic| clear $h)
 
-
-    -- automations
-    -- | `(ssrIntro| //) => newTactic do run (stx:=stx) `(tactic| ssr_triv )
-    -- | `(ssrIntro| /=) => newTactic do run (stx:=stx) `(tactic| try dsimp)
-    -- | `(ssrIntro| /==) => newTactic do run (stx:=stx) `(tactic| try simp)
-    -- | `(ssrIntro| //=) => newTactic do run (stx:=stx) `(tactic| try dsimp; ssr_triv )
-    -- | `(ssrIntro| //==) => newTactic do run (stx:=stx) `(tactic| try simp; ssr_triv )
-
     -- destructs
     | `(ssrIntro| []) => newTactic do run (stx:=stx) `(tactic| scase)
     | `(ssrIntro| [ $[$is:ssrIntros]|* ] ) => do
-      if (← getUnsolvedGoals).length == 1 then
-        run (stx:=stx) `(tactic|scase)
+      run (stx:=stx) `(tactic|scase)
       let goals ← getUnsolvedGoals
       if goals.length != is.size then
-        run (stx := stx) `(tactic| fail "Given { is.size } tactics, but excpected { goals.length }")
+        let goalsMsg := MessageData.joinSep (goals.map MessageData.ofGoal) m!"\n\n"
+        throwErrorAt stx "Given { is.size } tactics, but excpected { goals.length }\n{goalsMsg}"
       else
-        idxGoal fun i => elabIterate is[i]!
+        idxGoal fun i => withTacticInfoContext is[i]! $ elabIterate is[i]!
+    | `(ssrIntro| ![ $[$is:ssrIntros]|* ] ) => do
+      run (stx:=stx) `(tactic|elim)
+      let goals ← getUnsolvedGoals
+      if goals.length != is.size then
+        let goalsMsg := MessageData.joinSep (goals.map MessageData.ofGoal) m!"\n\n"
+        throwErrorAt stx "Given { is.size } tactics, but excpected { goals.length }\n{goalsMsg}"
+      else
+        withTacticInfoContext stx $ idxGoal fun i => elabIterate is[i]!
 
     -- top hyps manipulations
     | `(ssrIntro|/[swap]) => newTactic do
@@ -179,30 +180,23 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => newTactic do
 --    | `(ssrIntros| $[$is:ssrIntro] *) => return is.size
 --    | _ => throwError "unsupported syntax"
 
-elab t:tactic "=> " is:ssrIntros : tactic => do
-  run `(tactic|$t);
-  iterateElab (HashMap.ofList [
+elab t:tactic "=> " i:ssrIntro is:ssrIntros : tactic => do
+  let elabSsrs := iterateElab (HashMap.ofList [
     (`ssrIntro, elabSsr),
-    (`ssrTriv, fun _ => elabSTriv),
-  ]) is
+    (`ssrTriv, fun _ => elabSTriv)])
+  run `(tactic|$t);
+  match i with
+  | `(ssrIntro| [ $_:ssrIntros|* ]) =>
+    elabSsr elabSsrs i
+    allGoal $ elabSsrs is
+  | _ =>
+    allGoal $ withTacticInfoContext i $ elabSsr elabSsrs i
+    allGoal $ elabSsrs is
 
--- elab t:tactic "=> " i:ssrIntro is:ssrIntros : tactic => do
---   run `(tactic|$t);
---   (match i with
---   | `(ssrIntro| [] ) => allGoal $ elabSsr i
---   | `(ssrIntro| [ $[$is:ssrIntros]|* ] ) => elabSsr i
---   | _ => allGoal $ elabSsr i);
---   if (<- getUnsolvedGoals).length = 0 && (<-  isize is) = 0 then
---     return ()
---   else elabSsr.many is
+-- inductive True3 where
+--   | a1 (x : Nat) (y : True3) : True3
+--   | b2 (x : Nat) : True3
+--   | c3 (x : Nat) : True3
 
--- syntax (name:= sby) "sby " tacticSeq : tactic
-
--- @[tactic sby] def elabSby : Tactic
---   | `(tactic| sby%$sby $ts) => do
---     evalTactic ts
---     unless (<- getUnsolvedGoals).length = 0 do
---       tryGoal $ allGoal $ run `(tactic| solve | move=> // | moveR=> // | skip=> //  )
---     unless (<- getUnsolvedGoals).length = 0 do
---       throwErrorAt sby "No applicable tactic"
---   | _ => throwError "Unsupported index for sby"
+-- example : True -> True3 -> True := by
+--   skip=> ? [ ? | ? | ? ]
