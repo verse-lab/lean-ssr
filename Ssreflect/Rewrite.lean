@@ -3,6 +3,7 @@ import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Ssreflect.Done
+import Ssreflect.Basic
 import Lean.Parser.Tactic
 
 open Lean Lean.Expr Lean.Meta
@@ -20,7 +21,7 @@ syntax "[" (num)* "]" : srwPos
 syntax atomic("[" noWs "-") (num)* "]" : srwPos
 syntax (ident <|> ("(" term ")")) : srwTerm
 syntax  ((srwDir)? (srwIter)? (srwPos)? srwTerm) : srwRule
-syntax srwRules := (ppSpace colGt (srwRule <|> ssrTriv))*
+syntax srwRules := (ppSpace colGt (srwRule <|> ssrTriv <|> ssrBasic))*
 syntax (name := srw) "srw" srwRules (location)? : tactic
 
 syntax "repeat! " tacticSeq : tactic
@@ -84,10 +85,14 @@ def elabSrwRule (l : Option (TSyntax `Lean.Parser.Tactic.location)) : Tactic
 def elabSrw : Tactic
   | `(tactic| srw $rs:srwRules $l:location ?) =>
       iterateElab
-        (HashMap.ofList [(`srwRule, fun _ => elabSrwRule l), (`ssrTriv, fun _ => elabSTriv)])
+        (HashMap.ofList [
+          (`srwRule, fun _ => elabSrwRule l),
+          (`ssrTriv, fun _ => elabSTriv),
+          (`ssrBasic, fun _ => elabBasic)])
         rs
   | _ => throwError "unsupported syntax for srw tactic"
 
 
--- example : (True /\ False) /\ (True /\ False) = False := by
-  -- srw [-1]true_and true_and //==
+-- example : True -> (True /\ False) /\ (True /\ False) = False := by
+--   intro a
+--   srw [-1]true_and true_and //==
