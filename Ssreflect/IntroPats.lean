@@ -54,11 +54,6 @@ syntax "/[dup]" : ssrIntro
 -- clears
 syntax "{}" ident : ssrIntro
 
--- tactics
-
-macro_rules |
-  `(ssrIntro| {} $i:ident) => `(ssrIntros| {$i} $i:ident)
-
 partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => do
    withTacticInfoContext (<- getRef) do
    newTactic do
@@ -119,7 +114,7 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => do
         let goalsMsg := MessageData.joinSep (goals.map MessageData.ofGoal) m!"\n\n"
         throwErrorAt stx "Given { is.size } tactics, but excpected { goals.length }\n{goalsMsg}"
       else
-        withTacticInfoContext stx $ idxGoal fun i => elabIterate is[i]!
+        idxGoal fun i => withTacticInfoContext is[i]! $ elabIterate is[i]!
 
     -- top hyps manipulations
     | `(ssrIntro|/[swap]) => newTactic do
@@ -151,22 +146,10 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => do
       run  `(tactic| apply $n1 in $n2)
       run  `(tactic| clear $n1)
 
-    -- clears
-    -- | `(ssrIntro| {}$i:ident ) => newTactic do
-    --   run  `(tactic| clear $i)
-    --   run  `(tactic| intros $i)
-
     | _ => throwErrorAt stx "Unknown action"
-  -- where
-  --   many (stx : TSyntax `ssrIntros) : TacticM Unit :=
-  --   match stx with
-  --   | `(ssrIntros| $[$is:ssrIntro] *) => newTactic do
-  --     for i in is do allGoal $ elabSsr i
-  --   | _ => throwErrorAt stx "Unknown action"
 
--- def isize : TSyntax `ssrIntros -> MetaM Nat
---    | `(ssrIntros| $[$is:ssrIntro] *) => return is.size
---    | _ => throwError "unsupported syntax"
+macro_rules |
+  `(ssrIntro| {} $i:ident) => `(ssrIntros| {$i} $i:ident)
 
 def elabSsrs :=
   iterateElab (HashMap.ofList [
