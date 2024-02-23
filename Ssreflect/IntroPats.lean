@@ -56,6 +56,9 @@ syntax "{}" ident : ssrIntro
 
 -- tactics
 
+macro_rules |
+  `(ssrIntro| {} $i:ident) => `(ssrIntros| {$i} $i:ident)
+
 partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => do
    withTacticInfoContext (<- getRef) do
    newTactic do
@@ -63,7 +66,7 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => do
     match stx with
     -- intros
     | `(ssrIntro|$i:ident) => newTactic do
-        run (stx := stx) `(tactic| intro $i:ident)
+        run (stx := <- getRef) `(tactic| intro $i:ident)
     | `(ssrIntro| ?) => newTactic do run (stx:=stx) `(tactic| intro _)
     | `(ssrIntro| *) => newTactic do run (stx:=stx) `(tactic| intros)
     | `(ssrIntro| >) => newTactic do introsDep
@@ -108,7 +111,7 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => do
         let goalsMsg := MessageData.joinSep (goals.map MessageData.ofGoal) m!"\n\n"
         throwErrorAt stx "Given { is.size } tactics, but excpected { goals.length }\n{goalsMsg}"
       else
-         idxGoal fun i => elabIterate is[i]!
+         idxGoal fun i => withTacticInfoContext is[i]! $  elabIterate is[i]!
     | `(ssrIntro| ![ $[$is:ssrIntros]|* ] ) => do
       run (stx:=stx) `(tactic|elim)
       let goals ← getUnsolvedGoals
@@ -149,9 +152,9 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => do
       run (stx:=stx) `(tactic| clear $n1)
 
     -- clears
-    | `(ssrIntro| {}$i:ident ) => newTactic do
-      run (stx:=stx) `(tactic| clear $i)
-      run (stx:=stx) `(tactic| intros $i)
+    -- | `(ssrIntro| {}$i:ident ) => newTactic do
+    --   run (stx:=stx) `(tactic| clear $i)
+    --   run (stx:=stx) `(tactic| intros $i)
 
     | _ => throwErrorAt stx "Unknown action"
   -- where
@@ -172,14 +175,17 @@ def elabSsrs :=
     (`ssrBasic, fun _ => elabBasic)
   ])
 
-elab t:tactic "=> " i:ssrIntro is:ssrIntros : tactic => do
+syntax ssrIntro' := ssrIntro <|> ssrBasic <|> ssrTriv
+
+elab t:tactic "=> " i:ssrIntro' is:ssrIntros : tactic => do
   run `(tactic|$t);
   match i with
   | `(ssrIntro| [ $_:ssrIntros|* ]) =>
     withRef i do elabSsr elabSsrs i
     allGoal $ elabSsrs is
   | _ =>
-    allGoal $ withRef i do elabSsr elabSsrs i
+    let is := mkNullNode $ #[i.raw[0]] ++ is.raw[0].getArgs
+    let is := mkNode `ssIntros #[is]
     allGoal $ elabSsrs is
 
 inductive True3 where
@@ -187,5 +193,5 @@ inductive True3 where
   | b2 (x : Nat) : True3
   | c3 (x : Nat) : True3
 
-example : True3 -> True3 -> True := by
-  skip=> [ ? | ? | ? ]
+example : True3 -> True3 -> True3 -> True3 -> True := by
+  skip=> a {}b c

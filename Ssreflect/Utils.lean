@@ -119,7 +119,7 @@ partial def iterateElabCore (elabOne : HashMap SyntaxNodeKind ElabOne) (afterMac
   -- dbg_trace s! "{afterMacro}"
     let ks := keys elabOne
     match <- stx.isSeqOfCategory ks with
-    | some stx => throwErrorAt stx "Unsupported syntax1"
+    | some stx => throwErrorAt stx "Unsupported syntax : {stx}"
     | none =>
       for stx in stx[0].getArgs do
         let stx' := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
