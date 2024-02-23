@@ -13,12 +13,21 @@ syntax "ssr_triv" : tactic
 
 macro_rules |
   `(tactic| ssr_triv_core) => `(tactic|
+<<<<<<< HEAD
     try solve
      | (repeat (constructor <;> intros)) <;> simp_all
      | (repeat (constructor <;> intros)) <;> trivial)
+=======
+    try (solve
+      | (repeat (constructor <;> intros)) <;> simp_all
+      | (repeat (constructor <;> intros)) <;> trivial))
+-- macro_rules |
+--   `(tactic| ssr_triv_core) => `(tactic|
+--     try (solve| (repeat (constructor <;> intros)) <;> trivial))
+>>>>>>> 298955d (fix ssr_triv)
 
 macro_rules |
-  `(tactic| ssr_triv) => `(tactic| try solve | ((intros; ssr_triv_core); try (intros; simp_all; ssr_triv_core)))
+  `(tactic| ssr_triv) => `(tactic| try (solve | ((intros; ssr_triv_core); try (intros; simp_all; ssr_triv_core))))
 
 elab "sdone" : tactic => run `(tactic| solve | ssr_triv)
 

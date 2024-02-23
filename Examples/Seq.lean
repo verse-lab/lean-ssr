@@ -25,8 +25,14 @@ theorem size0nil (s : Seq α) : 0 = size s -> s = [] := by
   | _, _ => false
 
 def nilp (s : Seq α) : Bool := size s = 0
+<<<<<<< HEAD
 
 -- Lemma nilP s : reflect (s = [::]) (nilp s).
+=======
+-- instance nilP (s : Seq α) : Decidable (s = []) := by
+--   apply (decidable_of_bool (nilp s))
+--   sby scase:s
+>>>>>>> 298955d (fix ssr_triv)
 
 def ohead : Seq α -> Option α
   | [] => none
