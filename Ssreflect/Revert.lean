@@ -36,12 +36,12 @@ def elabSsrR : Tactic := fun stx =>
   newTactic do
     match stx with
     | `(ssrRevert|$i:ident) => newTactic do
-        run (stx := stx) `(tactic| revert $i:ident)
+        run  `(tactic| revert $i:ident)
     | `(ssrRevert|($t:term)) => newTactic do
         let h <- fresh "H"
-        run (stx := stx) `(tactic| have $h := $t)
-        run (stx := stx) `(tactic| revert $h)
-        tryGoal $ run (stx := stx) `(tactic| clear $h)
+        run  `(tactic| have $h := $t)
+        run  `(tactic| revert $h)
+        tryGoal $ run  `(tactic| clear $h)
     | _ => throwErrorAt stx "Unknown action"
 
 elab t:tactic ":" is:ssrReverts : tactic => do

@@ -36,10 +36,20 @@ macro_rules
 
 
 def elabSTriv : Tactic := fun stx => do
+  withTacticInfoContext (<- getRef) do
   match stx with
-  | `(ssrTriv| //)  => run (stx:=stx) `(tactic| ssr_triv)
-  | `(ssrTriv| /=)  => run (stx:=stx) `(tactic| try dsimp)
-  | `(ssrTriv| /==) => run (stx:=stx) `(tactic| try simp)
+  | `(ssrTriv| //)  => run `(tactic| ssr_triv)
+  | `(ssrTriv| /=)  => run `(tactic| try dsimp)
+  | `(ssrTriv| /==) => run `(tactic| try simp)
   | _               => throwErrorAt stx "Unsupported ssr_triv syntax"
 
-#print elabSTriv
+syntax (name:= sby) "sby " tacticSeq : tactic
+
+@[tactic sby] def elabSby : Tactic
+  | `(tactic| sby%$sby $ts) => do
+    evalTactic ts
+    unless (<- getUnsolvedGoals).length = 0 do
+      tryGoal $ allGoal $ run `(tactic| solve | ssr_triv)
+    unless (<- getUnsolvedGoals).length = 0 do
+      throwErrorAt sby "No applicable tactic"
+  | _ => throwError "Unsupported index for sby"

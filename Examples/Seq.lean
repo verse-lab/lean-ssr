@@ -1,7 +1,7 @@
 import Ssreflect.Lang
 import Std.Data.List
 import Std.Tactic.Omega
-import Ssreflect.Find
+import Loogle.Find
 
 notation "Seq" => List
 
@@ -29,7 +29,7 @@ def nilp (s : Seq α) : Bool := size s = 0
 
 instance : DecidableEq (Seq α) := by
   move=> x y; apply (decidable_of_bool (beq x y))
-  sby elim: x y=> [[]|???[]]
+  sby elim: x y => [[]|???[]]
 
 
 

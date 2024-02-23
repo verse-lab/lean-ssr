@@ -1,5 +1,6 @@
 import Ssreflect.ApplyIn
-import Ssreflect.Move
+import Ssreflect.Basic
+import Ssreflect.Done
 import Ssreflect.Revert
 import Ssreflect.IntroPats
 import Ssreflect.Elim

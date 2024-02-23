@@ -25,9 +25,9 @@ def newTactic (x : TacticM α) : TacticM α :=
 --   let t' ← t
 --   evalTactic t'
 
-def run (t: TacticM (Lean.TSyntax `tactic)) (stx : Option Syntax := none): TacticM Unit := do
+def run (t: TacticM (Lean.TSyntax `tactic)): TacticM Unit := do
     try evalTactic (<- t)
-    catch ex => throwErrorAt (stx.getD ex.getRef) ex.toMessageData
+    catch ex => throwErrorAt (<- getRef) ex.toMessageData
 
 -- def tryRun (t: TacticM (Lean.TSyntax `tactic)): TacticM Unit := do
 --   let t' ← t
@@ -49,7 +49,7 @@ def allGoal [Inhabited α]
     tac
   else
     newTactic do
-      let mvarIds ← getGoals
+      let mvarIds ← getUnsolvedGoals
       let mut mvarIdsNew := #[]
       let mut ans := []
       for mvarId in mvarIds do
@@ -116,7 +116,6 @@ def _root_.Lean.Syntax.isSeqOfCategory (stx : Syntax) (cats: List Name) : MetaM 
 abbrev ElabOne := Tactic -> Tactic
 
 partial def iterateElabCore (elabOne : HashMap SyntaxNodeKind ElabOne) (afterMacro : Bool) (stx : Syntax) : TacticM Unit := do
-  -- dbg_trace s! "{afterMacro}"
     let ks := keys elabOne
     match <- stx.isSeqOfCategory ks with
     | some stx => throwErrorAt stx "Unsupported syntax : {stx}"

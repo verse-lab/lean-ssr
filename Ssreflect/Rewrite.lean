@@ -76,10 +76,10 @@ def elabSrwRule (l : Option (TSyntax `Lean.Parser.Tactic.location)) (stx : Synta
       match i with
       | some i =>
           match i with
-          | `(srwIter| ?) => run (stx := t) `(tactic| (repeat' ($r:tactic)))
-          | `(srwIter| !) => run (stx := t) `(tactic| (repeat! ($r:tactic)))
+          | `(srwIter| ?) => run `(tactic| (repeat' ($r:tactic)))
+          | `(srwIter| !) => run `(tactic| (repeat! ($r:tactic)))
           | _ => throwErrorAt i "sould be either ? or !"
-      | none => run (stx := t) (return r)
+      | none => run (return r)
   | _ => throwError "unsupported syntax for srw tactic"
 
 
@@ -95,6 +95,6 @@ def elabSrw : Tactic
   | _ => throwError "unsupported syntax for srw tactic"
 
 
-example : True -> (True /\ False) /\ (True /\ False) = False := by
-  intro a
-  srw [-1]true_and true_and //==
+-- example : True -> (True /\ False) /\ (True /\ False) = False := by
+--   intro a
+--   srw [-1]true_and true_and //==
