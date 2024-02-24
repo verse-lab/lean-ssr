@@ -10,7 +10,6 @@ package Ssreflect where
   -- add any additional package configuration options here
 
 require std from git "https://github.com/leanprover/std4" @ "main"
-require loogle from git "https://github.com/volodeyka/loogle" @ "master"
 
 @[default_target]
 lean_lib Ssreflect where
