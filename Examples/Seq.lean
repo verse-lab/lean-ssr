@@ -141,6 +141,10 @@ theorem nth_index (s : Seq α) : x ∈ s → nth x0 s (index x s) = x := by sorr
 theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by sorry
 @[simp] theorem size_belast : size (belast x s) = size s := by sorry
 
+-- count_uniq_mem: clear at intro
+-- catCA_perm_ind: clear at revert
+-- subseqP: clear at rewrite
+
 theorem subseqP (s1 s2 : Seq α) :
   (subseq s1 s2) <-> (exists m, size m = size s2 /\ s1 = mask m s2) := by
   elim: s2 s1=> [| s2 IHs2 y] [|s1 x]
@@ -150,7 +154,7 @@ theorem subseqP (s1 s2 : Seq α) :
   simp [IHs2]; constructor=> [] m []def_s1 sz_m
   { sby exists ((x = y) :: m); simp [<-def_s1]; scase_if }
   scase_if=> ne_xy; rotate_right
-  { sby scase: m def_s1 sz_m=> [|m[]] //==-><-; exists m }
+  { sby scase: m def_s1 sz_m=> [|m[]] //== }
   generalize h : (index true m) = i at *
   shave def_m_i : take i m = nseq false (size (take i m))
   { simp [all_nthP true]=> j le; srw nth_take
@@ -164,7 +168,7 @@ theorem subseqP (s1 s2 : Seq α) :
   simp [-all_pred1P, lt_i_m] at def_m_i
   exists (take i m ++ drop (i+1) m); constructor
   { simp_all; omega }
-  move: (congrArg behead def_s1)=> /== ->
+  move: {def_s1} (congrArg behead def_s1)=> /== -> {s1}
   srw -[1](cat_take_drop i m) -(cat_take_drop i s2) def_m_i -cat_cons
   shave sz_i_s2: size (take i s2) = i; simp; omega
   srw lastI cat_rcons ?mask_cat ?size_belast ?sz_i_s2 //==

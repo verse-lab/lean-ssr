@@ -24,7 +24,8 @@ private partial def introsDep : TacticM Unit := do
   | _ => pure ()
 
 declare_syntax_cat ssrIntro
-syntax ssrIntros := (ppSpace colGt (ssrIntro <|> ssrTriv <|> ssrBasic))*
+declare_syntax_cat ssrIntros
+syntax (name := ssrIntros) (ppSpace colGt (ssrIntro <|> ssrTriv <|> ssrBasic))* : ssrIntros
 -- intros
 syntax ident : ssrIntro
 syntax "?" : ssrIntro
@@ -44,7 +45,6 @@ syntax "/(_" term ")" : ssrIntro
 -- destructs
 syntax "[ ]" : ssrIntro
 syntax "[" sepBy1(ssrIntros, "|") "]" : ssrIntro
-syntax "![" sepBy1(ssrIntros, "|") "]" : ssrIntro
 
 -- top hyps manipulations
 syntax "/[swap]" : ssrIntro
@@ -54,69 +54,59 @@ syntax "/[dup]" : ssrIntro
 -- clears
 syntax "{}" ident : ssrIntro
 
-partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => do
-   withTacticInfoContext (<- getRef) do
-   newTactic do
-    let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
-    match stx with
-    -- intros
-    | `(ssrIntro|$i:ident) => newTactic do
-        run `(tactic| intro $i:ident)
-    | `(ssrIntro| ?) => newTactic do run  `(tactic| intro _)
-    | `(ssrIntro| *) => newTactic do run  `(tactic| intros)
-    | `(ssrIntro| >) => newTactic do introsDep
-    | `(ssrIntro| _) => newTactic do
+elab_rules : tactic
+    | `(ssrIntro|$i:ident) => run `(tactic| intro $i:ident)
+    | `(ssrIntro| ?) => run `(tactic| intro _)
+    | `(ssrIntro| *) => run `(tactic| intros)
+    | `(ssrIntro| >) => introsDep
+    | `(ssrIntro| _) => do
       let name ← fresh "H"
-      run  `(tactic| intros $name)
-      run  `(tactic| clear $name)
+      evalTactic $ <- `(tactic| intros $name)
+      evalTactic $ <- `(tactic| clear $name)
 
     -- rewrites
-    | `(ssrIntro| ->) => newTactic do
+    | `(ssrIntro| ->) => do
       let name ← fresh "H"
-      run  `(tactic| intros $name)
-      run  `(tactic| rw [$name:ident])
-      tryGoal $ run  `(tactic| clear $name)
+      run `(tactic| intros $name)
+      run `(tactic| rw [$name:ident])
+      run `(tactic| try clear $name)
     | `(ssrIntro| <-) => newTactic do
       let name ← fresh "H"
-      run  `(tactic| intros $name)
-      run  `(tactic| rw [<-$name:ident])
-      tryGoal $ run  `(tactic| clear $name)
+      run `(tactic| intros $name)
+      run `(tactic| rw [<-$name:ident])
+      run `(tactic| try clear $name)
 
-    -- switches
-    | `(ssrIntro|/$t:ident)
-    | `(ssrIntro|/($t:term)) => newTactic do
+    -- -- switches
+    | `(ssrIntro|/$t:ident) => do
+      let name <- fresh "H"
+      run `(tactic| intros $name)
+      run `(tactic| apply $t:term in $name)
+    | `(ssrIntro|/($t:term)) => do
       let name <- fresh "H"
       run  `(tactic| intros $name)
       run `(tactic| apply $t:term in $name)
-    | `(ssrIntro|/(_ $t:term)) => newTactic do
+    | `(ssrIntro|/(_ $t:term)) => do
       let name <- fresh "N"
       let h <- fresh "H"
-      run  `(tactic| intros $name)
-      run  `(tactic| have $h := $t)
+      run `(tactic| intros $name)
+      run `(tactic| have $h := $t)
       run `(tactic| apply $name:term in $h)
-      tryGoal $ run  `(tactic| clear $name)
-      tryGoal $ run  `(tactic| clear $h)
+      run `(tactic| try clear $name)
+      run `(tactic| try clear $h)
 
     -- destructs
-    | `(ssrIntro| []) => newTactic do run  `(tactic| scase)
-    | `(ssrIntro| [ $[$is:ssrIntros]|* ] ) => do
+    | `(ssrIntro| []) => run `(tactic| scase)
+    | `(ssrIntro| [$[$is:ssrIntros]|* ] ) => do
       if (← getUnsolvedGoals).length == 1 then run `(tactic|scase)
       let goals ← getUnsolvedGoals
       if goals.length != is.size then
         let goalsMsg := MessageData.joinSep (goals.map MessageData.ofGoal) m!"\n\n"
-        throwErrorAt stx "Given { is.size } tactics, but excpected { goals.length }\n{goalsMsg}"
+        let s <- `(ssrIntro| [$[$is:ssrIntros]|* ] )
+        throwErrorAt s "Given { is.size } tactics, but excpected { goals.length }\n{goalsMsg}"
       else
-         idxGoal fun i => withTacticInfoContext is[i]! $  elabIterate is[i]!
-    | `(ssrIntro| ![ $[$is:ssrIntros]|* ] ) => do
-      run  `(tactic|elim)
-      let goals ← getUnsolvedGoals
-      if goals.length != is.size then
-        let goalsMsg := MessageData.joinSep (goals.map MessageData.ofGoal) m!"\n\n"
-        throwErrorAt stx "Given { is.size } tactics, but excpected { goals.length }\n{goalsMsg}"
-      else
-        idxGoal fun i => withTacticInfoContext is[i]! $ elabIterate is[i]!
+         idxGoal fun i => newTactic $ elabTactic $ is[i]!.raw[0]
 
-    -- top hyps manipulations
+    -- -- top hyps manipulations
     | `(ssrIntro|/[swap]) => newTactic do
       let forallE n1 _ _ _ := (<- getMainTarget).consumeMData
         | run  `(tactic| fail "Goal is not an arrow type")
@@ -142,47 +132,36 @@ partial def elabSsr (elabIterate : Tactic) : Tactic := fun stx => do
       let forallE n2 _ _ _ := (<- getMainTarget).consumeMData
         | run  `(tactic| fail "Goal is not an arrow type")
       let n2 := mkIdent n2
-      run  `(tactic| intros $n2)
-      run  `(tactic| apply $n1 in $n2)
-      run  `(tactic| clear $n1)
+      run `(tactic| intros $n2)
+      run `(tactic| apply $n1 in $n2)
+      run `(tactic| clear $n1)
 
-    | _ => throwErrorAt stx "Unknown action"
-
-macro_rules |
-  `(ssrIntro| {} $i:ident) => `(ssrIntros| {$i} $i:ident)
-
-def elabSsrs :=
-  iterateElab (HashMap.ofList [
-    (`ssrIntro, elabSsr),
-    (`ssrTriv, fun _ => elabSTriv),
-    (`ssrBasic, fun _ => elabBasic)
-  ])
+elab_rules : tactic
+  | `(ssrIntros| $[$ts]*) => elabTactic $ mkNullNode ts
 
 syntax ssrIntro' := ssrIntro <|> ssrBasic <|> ssrTriv
-
-elab t:tactic "=> " i:ssrIntro' is:ssrIntros : tactic => do
-  run `(tactic|$t);
+elab t:tactic arr:"=> " i:ssrIntro' is:ssrIntros : tactic => do
+  evalTactic  t
   match i with
   | `(ssrIntro'| []) =>
-    let is := mkNullNode $ #[i.raw[0]] ++ is.raw[0].getArgs
-    let is := mkNode `ssIntros #[is]
-    elabSsrs is
+    withTacticInfoContext arr do
+      elabTactic $ mkNullNode $ #[i.raw[0]] ++ is.raw[0].getArgs
   | `(ssrIntro'| [ $_:ssrIntros|* ]) =>
-    withRef i do elabSsr elabSsrs i.raw[0]
-    elabSsrs is
+    withTacticInfoContext arr do
+      elabTactic i.raw[0]
+      elabTactic is.raw[0]
   | _ =>
-    let is := mkNullNode $ #[i.raw[0]] ++ is.raw[0].getArgs
-    let is := mkNode `ssIntros #[is]
-    elabSsrs is
-
--- theorem foo (n : List Nat) : (m : List Nat) -> n = m -> [] = m := by
---   skip=> [|?] // ?
+    withTacticInfoContext arr do
+      elabTactic $ mkNullNode $ #[i.raw[0]] ++ is.raw[0].getArgs
 
 
--- inductive True3 where
---   | a1 (x : Nat) (y : True3) : True3
---   | b2 (x : Nat) : True3
---   | c3 (x : Nat) : True3
+elab_rules : tactic
+   | `(ssrIntro| {}%$brs $i:ident) => do
+    try run `(tactic| clear $i)
+    catch | ex => throwErrorAt brs ex.toMessageData
+    try run `(tactic| intros $i:ident)
+    catch | ex => throwErrorAt i ex.toMessageData
 
--- example (k : Nat) : (True ∨ True) -> (True = (True \/ True)) \/ False -> False = True := by
---   scase: k=> ? [] //= ->
+
+-- example : True \/ True -> True -> True /\ True -> True := by
+--   scase=> [ [a] [] {}b  | * ] //=

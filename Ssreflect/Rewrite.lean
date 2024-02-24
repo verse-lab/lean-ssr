@@ -13,6 +13,9 @@ open Lean.Parser.Tactic
 declare_syntax_cat srwIter
 declare_syntax_cat srwTerm
 declare_syntax_cat srwRule
+declare_syntax_cat srwRules
+declare_syntax_cat srwRuleLoc
+declare_syntax_cat srwRulesLoc
 declare_syntax_cat srwDir
 declare_syntax_cat srwPos (behavior := both)
 syntax ("?" <|> "!") : srwIter
@@ -20,8 +23,10 @@ syntax "-" : srwDir
 syntax "[" (num)* "]" : srwPos
 syntax atomic("[" noWs "-") (num)* "]" : srwPos
 syntax (ident <|> ("(" term ")")) : srwTerm
-syntax  ((srwDir)? (srwIter)? (srwPos)? srwTerm) : srwRule
-syntax srwRules := (ppSpace colGt (srwRule <|> ssrTriv <|> ssrBasic))*
+syntax (name:= srwRule) ((srwDir)? (srwIter)? (srwPos)? srwTerm) : srwRule
+syntax srwRule  (location)? : srwRuleLoc
+syntax (ppSpace colGt (srwRule <|> ssrTriv <|> ssrBasic))* : srwRules
+syntax (name:= srwRulesLoc) (ppSpace colGt (srwRuleLoc <|> ssrTriv <|> ssrBasic))* : srwRulesLoc
 syntax (name := srw) "srw" srwRules (location)? : tactic
 
 syntax "repeat! " tacticSeq : tactic
@@ -56,45 +61,46 @@ partial def macroCfg (stx : TSyntax `srwPos) : MacroM $ TSyntax `term :=
   | _ => Macro.throwErrorAt stx "Unsupported syntax for 'srw' positions"
 
 
-def elabSrwRule (l : Option (TSyntax `Lean.Parser.Tactic.location)) (stx : Syntax) : TacticM Unit := do
-  withTacticInfoContext (<- getRef) do
-  match stx with
-  | `(srwRule| $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm) => do
-      let t' := match t with
-        | `(srwTerm| ($t:term)) => some t
-        | `(srwTerm| $t:ident) => some t
-        | _ => none
-      let some t := t' | throwErrorAt t "Unsupported Syntax"
-      let cfg <- match cfg with
-      | some cfg =>
-        let cfg <- liftMacroM <| macroCfg cfg
-        `(term| {occs := $cfg})
-      | _ => `(term| {occs := .all})
-      let r <- match d with
-        | some _ => `(tactic| rw (config := $cfg) [<-$t:term] $(l)?)
-        | none   => `(tactic| rw (config := $cfg) [$t:term] $(l)?)
-      match i with
-      | some i =>
-          match i with
-          | `(srwIter| ?) => run `(tactic| (repeat' ($r:tactic)))
-          | `(srwIter| !) => run `(tactic| (repeat! ($r:tactic)))
-          | _ => throwErrorAt i "sould be either ? or !"
-      | none => run (return r)
-  | _ => throwError "unsupported syntax for srw tactic"
+elab_rules : tactic
+  | `(srwRuleLoc| $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm $l:location ?) =>
+      try do
+        let t' := match t with
+          | `(srwTerm| ($t:term)) => some t
+          | `(srwTerm| $t:ident) => some t
+          | _ => none
+        let some t := t' | throwErrorAt t "Unsupported Syntax"
+        let cfg <- match cfg with
+        | some cfg =>
+          let cfg <- liftMacroM <| macroCfg cfg
+          `(term| {occs := $cfg})
+        | _ => `(term| {occs := .all})
+        let r <- match d with
+          | some _ => `(tactic| rw (config := $cfg) [<-$t:term] $(l)?)
+          | none   => `(tactic| rw (config := $cfg) [$t:term] $(l)?)
+        match i with
+        | some i =>
+            match i with
+            | `(srwIter| ?) => run `(tactic| (repeat' ($r:tactic)))
+            | `(srwIter| !) => run `(tactic| (repeat! ($r:tactic)))
+            | _ => throwErrorAt i "sould be either ? or !"
+        | none => evalTactic r
+      catch | ex => throwErrorAt t ex.toMessageData
 
+elab "srw" rs:srwRules l:(location)? : tactic =>
+  match rs with
+  | `(srwRules| $[$ts] *) => do
+    let ts <- ts.mapM fun x => do
+      if x.raw.isOfKind `srwRule then
+        let y <- `(srwRuleLoc| $(⟨x.raw.setKind `srwRule⟩):srwRule $l:location ?)
+        return y.raw
+      else return x.raw
+    elabTactic (annotate := (withTacticInfoContext ·[0])) $ mkNullNode ts
+  | _ => throwError ""
 
-@[tactic srw]
-def elabSrw : Tactic
-  | `(tactic| srw $rs:srwRules $l:location ?) =>
-      iterateElab
-        (HashMap.ofList [
-          (`srwRule, fun _ => elabSrwRule l),
-          (`ssrTriv, fun _ => elabSTriv),
-          (`ssrBasic, fun _ => elabBasic)])
-        rs
-  | _ => throwError "unsupported syntax for srw tactic"
-
+elab_rules : tactic
+  | `(srwRulesLoc| $[$ts]*) => elabTactic (annotate := (withTacticInfoContext ·[0])) $ mkNullNode ts
 
 -- example : True -> (True /\ False) /\ (True /\ False) = False := by
 --   intro a
---   srw [-1]true_and true_and //==
+--   -- rw [true_and] at a
+--   srw ?[-1]true_and true_and

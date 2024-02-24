@@ -25,9 +25,8 @@ def newTactic (x : TacticM α) : TacticM α :=
 --   let t' ← t
 --   evalTactic t'
 
-def run (t: TacticM (Lean.TSyntax `tactic)): TacticM Unit := do
-    try evalTactic (<- t)
-    catch ex => throwErrorAt (<- getRef) ex.toMessageData
+def run (t: TacticM Syntax): TacticM Unit := newTactic do
+    evalTactic (<- t)
 
 -- def tryRun (t: TacticM (Lean.TSyntax `tactic)): TacticM Unit := do
 --   let t' ← t
@@ -113,35 +112,123 @@ def _root_.Lean.Syntax.isOfCategories (stx : Syntax) (cats : List Name) : MetaM 
 def _root_.Lean.Syntax.isSeqOfCategory (stx : Syntax) (cats: List Name) : MetaM $ Option Syntax :=
   stx[0].getArgs.findM? fun s => return not (<- cats.anyM (s.isOfCategory ·))
 
-abbrev ElabOne := Tactic -> Tactic
+-- abbrev ElabOne := Tactic -> Tactic
 
-partial def iterateElabCore (elabOne : HashMap SyntaxNodeKind ElabOne) (afterMacro : Bool) (stx : Syntax) : TacticM Unit := do
-    let ks := keys elabOne
-    match <- stx.isSeqOfCategory ks with
-    | some stx => throwErrorAt stx "Unsupported syntax : {stx}"
-    | none =>
-      for stx in stx[0].getArgs do
-        let stx' := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
-        let afterMacro := afterMacro || (stx != stx')
-        match <- stx'.isSeqOfCategory ks, <- stx'.isOfCategories ks with
-        | _     , some n =>
-          let wR : _ -> TacticM Unit := if afterMacro then id else withRef stx'
-          allGoal $ wR $ elabOne[n].get! (iterateElabCore elabOne afterMacro) stx'
-        | none, none     => withRef stx do iterateElabCore elabOne afterMacro stx'
-        | _     , _      => dbg_trace s! "{stx'[0].getArgs}"; throwErrorAt stx' "Unsupported syntax2"
+-- partial def iterateElabCore (elabOne : HashMap SyntaxNodeKind ElabOne) (afterMacro : Bool) (stx : Syntax) : TacticM Unit := do
+--     let cats := keys elabOne
+--     match <- stx.isSeqOfCategory cats with
+--     | some stx => throwErrorAt stx "Unsupported syntax : {stx}"
+--     | none =>
+--       for stx in stx[0].getArgs do
+--         let stx' := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
+--         let afterMacro := afterMacro || (stx != stx')
+--         match <- stx'.isSeqOfCategory cats, <- stx'.isOfCategories cats with
+--         | _     , some n =>
+--           let wR : _ -> TacticM Unit := if afterMacro then id else withRef stx'
+--           allGoal $ wR $ elabOne[n].get! (iterateElabCore elabOne afterMacro) stx'
+--         | none, none     => withRef stx do iterateElabCore elabOne afterMacro stx'
+--         | _     , _      => dbg_trace s! "{stx'[0].getArgs}"; throwErrorAt stx' "Unsupported syntax2"
 
-def iterateElab (elabOne : HashMap SyntaxNodeKind ElabOne) (stx : Syntax) : TacticM Unit :=
-  withRef stx do iterateElabCore elabOne false stx
+-- def iterateElab (elabOne : HashMap SyntaxNodeKind ElabOne) (stx : Syntax) : TacticM Unit :=
+--   withRef stx do iterateElabCore elabOne false stx
 
 
--- partial def iterateElab (elabOne : HashMap SyntaxNodeKind ElabOne) (stx : Syntax) : TacticM Unit := do
---   let ks := keys elabOne
---   match <- stx.isSeqOfCategory ks with
+partial def elabTactic (stx : Syntax)
+  (annotate : Syntax ->TacticM Unit -> TacticM Unit := withTacticInfoContext)
+  (toGoal : TacticM Unit -> TacticM Unit := allGoal) : TacticM Unit := do
+  profileitM Exception "tactic execution" (decl := stx.getKind) (← getOptions) <|
+  withRef stx <| withIncRecDepth <| withFreshMacroScope <| match stx with
+    | .node _ k _    =>
+      if k == nullKind then
+        -- Macro writers create a sequence of tactics `t₁ ... tₙ` using `mkNullNode #[t₁, ..., tₙ]`
+        stx.getArgs.forM (toGoal $ elabTactic · annotate)
+      else withTraceNode `Elab.step (fun _ => return stx) do
+        let evalFns := tacticElabAttribute.getEntries (← getEnv) stx.getKind
+        let macros  := macroAttribute.getEntries (← getEnv) stx.getKind
+        if evalFns.isEmpty && macros.isEmpty then
+          throwErrorAt stx "tactic '{stx.getKind}' has not been implemented"
+        let s ← Tactic.saveState
+        expandEval s macros evalFns #[]
+    | .missing => pure ()
+    | _ => throwError m!"unexpected tactic{indentD stx}"
+where
+    throwExs (failures : Array EvalTacticFailure) : TacticM Unit := do
+     if let some fail := failures[0]? then
+       -- Recall that `failures[0]` is the highest priority evalFn/macro
+       fail.state.restore (restoreInfo := true)
+       throw fail.exception -- (*)
+     else
+       throwErrorAt stx "unexpected syntax {indentD stx}"
+
+    @[inline] handleEx (s : Tactic.SavedState) (failures : Array EvalTacticFailure) (ex : Exception) (k : Array EvalTacticFailure → TacticM Unit) := do
+      match ex with
+      | .error .. =>
+        trace[Elab.tactic.backtrack] ex.toMessageData
+        let failures := failures.push ⟨ex, ← Tactic.saveState⟩
+        s.restore (restoreInfo := true); k failures
+      | .internal id _ =>
+        if id == unsupportedSyntaxExceptionId then
+          -- We do not store `unsupportedSyntaxExceptionId`, see throwExs
+          s.restore (restoreInfo := true); k failures
+        else if id == abortTacticExceptionId then
+          for msg in (← Core.getMessageLog).toList do
+            trace[Elab.tactic.backtrack] msg.data
+          let failures := failures.push ⟨ex, ← Tactic.saveState⟩
+          s.restore (restoreInfo := true); k failures
+        else
+          throw ex -- (*)
+
+    expandEval (s : Tactic.SavedState) (macros : List _) (evalFns : List _) (failures : Array EvalTacticFailure) : TacticM Unit :=
+      match macros with
+      | [] => eval s evalFns failures
+      | m :: ms =>
+        try
+          withReader ({ · with elaborator := m.declName }) do
+            annotate stx do
+              let stx' ← adaptMacro m.value stx
+              (elabTactic stx' annotate)
+        catch ex => handleEx s failures ex (expandEval s ms evalFns)
+
+    eval (s : Tactic.SavedState) (evalFns : List _) (failures : Array EvalTacticFailure) : TacticM Unit := do
+      match evalFns with
+      | []              => throwExs failures
+      | evalFn::evalFns => do
+        try
+          withReader ({ · with elaborator := evalFn.declName }) <| annotate stx <| evalFn.value stx
+        catch ex => handleEx s failures ex (eval s evalFns)
+
+
+
+-- partial def iterateElab0 (elabOne : HashMap SyntaxNodeKind Tactic) (stx : Syntax) : TacticM Unit := do
+--   let cats := keys elabOne
+--   match <- stx.isSeqOfCategory cats with
+--   | some stx => throwErrorAt stx "Unsupported syntax1"
+--   | none =>
+--     for stx in stx[0].getArgs do
+--     match <- stx.isOfCategories cats with
+--     | some n => allGoal $ elabOne[n].get! stx
+--     | _ => throwErrorAt stx "Unsupported syntax2"
+
+-- partial def iterateElab1 (elabOne : HashMap SyntaxNodeKind Tactic) (stx : Syntax) : TacticM Unit := do
+--   let cats := keys elabOne
+--   match <- stx.isSeqOfCategory cats with
 --   | some stx => throwErrorAt stx "Unsupported syntax1"
 --   | none =>
 --     for stx in stx[0].getArgs do
 --       let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
---       match <- stx.isSeqOfCategory ks, <- stx.isOfCategories ks with
---       | _     , some n => allGoal $ withTacticInfoContext stx $ elabOne[n].get! (iterateElab elabOne) stx
---       | none, none     => iterateElab elabOne stx
---       | _     , _      => dbg_trace s! "{stx[0].getArgs}"; throwErrorAt stx "Unsupported syntax2"
+--       match <- stx.isSeqOfCategory cats, <- stx.isOfCategories cats with
+--       | _     , some n => allGoal $ elabOne[n].get! stx
+--       | none, none     => iterateElab1 elabOne stx
+--       | _     , _      => throwErrorAt stx "Unsupported syntax2"
+
+-- partial def iterateElab2 (elabOne : HashMap SyntaxNodeKind ElabOne) (stx : Syntax) : TacticM Unit := do
+--   let cats := keys elabOne
+--   match <- stx.isSeqOfCategory cats with
+--   | some stx => throwErrorAt stx "Unsupported syntax1"
+--   | none =>
+--     for stx in stx[0].getArgs do
+--       let stx := (<- liftMacroM (Macro.expandMacro? stx)).getD stx
+--       match <- stx.isSeqOfCategory cats, <- stx.isOfCategories cats with
+--       | _     , some n => allGoal $ elabOne[n].get! (iterateElab2 elabOne) stx
+--       | none, none     => iterateElab2 elabOne stx
+--       | _     , _      => throwErrorAt stx "Unsupported syntax2"

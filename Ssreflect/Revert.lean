@@ -3,16 +3,17 @@ import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Ssreflect.Basic
+import Std.Tactic.Replace
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 
 declare_syntax_cat ssrRevert
+declare_syntax_cat ssrReverts
 -- intros
-syntax ident : ssrRevert
 syntax "(" term ")" : ssrRevert
-
-syntax ssrReverts := (ppSpace colGt (ssrRevert <|> ssrBasic))*
+syntax ident : ssrRevert
+syntax (name:= ssrReverts) (ppSpace colGt (ssrRevert <|> ssrBasic))* : ssrReverts
 
 def mkTacticInfoR (mctxBefore : MetavarContext) (goalsBefore : List MVarId) (stx : Syntax) : TacticM Info :=
   return Info.ofTacticInfo {
@@ -32,28 +33,25 @@ def mkInitialTacticInfoR (stx : Syntax) : TacticM (TacticM Info) := do
 @[inline] def withTacticInfoContextR (stx : Syntax) (x : TacticM α) : TacticM α := do
   withInfoContext x (← mkInitialTacticInfoR stx)
 
-def elabSsrR : Tactic := fun stx =>do
-  withTacticInfoContextR (<- getRef) do
-  newTactic do
-    match stx with
-    | `(ssrRevert|$i:ident) => newTactic do
-        run  `(tactic| revert $i:ident)
-    | `(ssrRevert|($t:term)) => newTactic do
-        let h <- fresh "H"
-        run  `(tactic| have $h := $t)
-        run  `(tactic| revert $h)
-        tryGoal $ run  `(tactic| clear $h)
-    | _ => throwErrorAt stx "Unknown action"
+elab_rules : tactic
+  | `(ssrRevert|$i:ident) => do
+      run  `(tactic| revert $i:term)
+  | `(ssrRevert|($t:term)) => do
+      let h <- fresh "H"
+      let goal <- getMainGoal
+      let goalTag <- goal.getTag
+      let (trm, []) <- Tactic.elabTermWithHoles (allowNaturalHoles := true) t none goalTag
+        | throwErrorAt t "Cannont infer implicit parameters of {t}"
+      let goal <- goal.assert h.getId (<- inferType trm) trm
+      setGoals $ goal :: (<- getUnsolvedGoals)
+
+elab_rules : tactic
+  | `(ssrReverts| $[$ts]*) => elabTactic (annotate := withTacticInfoContextR) $ mkNullNode ts
 
 elab t:tactic ":" is:ssrReverts : tactic => do
-  let is := mkNullNode is.raw[0].getArgs.reverse
-  let is := mkNode `ssrReverts #[is]
-  iterateElab (HashMap.ofList [
-    (`ssrRevert, fun _ => elabSsrR),
-    (`ssrBasic, fun _ stx => do
-      withTacticInfoContextR (<- getRef) $ elabBasic stx)
-  ]) is; run `(tactic|$t);
+  let is := is.raw[0].getArgs.reverse
+  elabTactic (annotate := withTacticInfoContextR) $ mkNullNode is
+  elabTactic t
 
-
--- example (k m : Int) (eq : k = k) : k = k := by
---   skip: {m} k (Eq.refl k)
+-- example (x y : Nat) : True := by
+--   skip: {y} x (@Eq.refl Nat x);

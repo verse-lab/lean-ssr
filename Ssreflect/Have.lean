@@ -14,5 +14,5 @@ elab "shave" is:ssrIntros ":" t:term : tactic => do
   let goals <-getUnsolvedGoals
   setGoals [goal]
   run `(tactic| revert $h)
-  tryGoal $ elabSsrs is
+  tryGoal $ elabTactic is.raw[0]
   setGoals $ goals ++ (<-getUnsolvedGoals)
