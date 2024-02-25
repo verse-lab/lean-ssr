@@ -75,8 +75,14 @@ elab_rules : tactic
           `(term| {occs := $cfg})
         | _ => `(term| {occs := .all})
         let r <- match d with
-          | some _ => `(tactic| rw (config := $cfg) [<-$t:term] $(l)?)
-          | none   => `(tactic| rw (config := $cfg) [$t:term] $(l)?)
+          | some _ =>
+            `(tactic| first
+              | rw (config := $cfg) [<-$t:term] $(l)?
+              | simp only [<-$t:term] $(l)? )
+          | none   =>
+            `(tactic| first
+              | rw (config := $cfg) [$t:term] $(l)?
+              | simp only [$t:term] $(l)? )
         match i with
         | some i =>
             match i with
@@ -97,10 +103,15 @@ elab "srw" rs:srwRules l:(location)? : tactic =>
     elabTactic (annotate := (withTacticInfoContext ·[0])) $ mkNullNode ts
   | _ => throwError ""
 
-elab_rules : tactic
-  | `(srwRulesLoc| $[$ts]*) => elabTactic (annotate := (withTacticInfoContext ·[0])) $ mkNullNode ts
+def chipOfLoc (stx : Syntax) : Syntax :=
+  if stx.isOfKind `srwRuleLoc then
+    mkNode `swrRule $ stx[0].getArgs.filter fun arg => ¬ arg.isOfKind `location
+  else stx
 
--- example : True -> (True /\ False) /\ (True /\ False) = False := by
---   intro a
---   -- rw [true_and] at a
---   srw ?[-1]true_and true_and
+
+elab_rules : tactic
+  | `(srwRulesLoc| $[$ts]*) => elabTactic (annotate := (withTacticInfoContext <| chipOfLoc ·)) $ mkNullNode ts
+
+example (H : (True /\ False) /\ (True /\ False) = False) : True -> (True /\ False) /\ (True /\ False) = False := by
+  intro a
+  srw [-1]true_and true_and

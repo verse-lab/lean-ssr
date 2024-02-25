@@ -1,7 +1,7 @@
 import Ssreflect.Lang
 import Std.Data.List
 import Std.Tactic.Omega
-import Loogle.Find
+
 
 notation "Seq" => List
 
@@ -13,6 +13,7 @@ variable {α : Type} [DecidableEq α]
   | [] => 0
   | _ :: xs => Nat.succ $ size xs
 
+-- (1)
 def size0nil (s : Seq α) : size s = 0 -> s = [] := by
   sby scase: s
 
@@ -62,6 +63,14 @@ def mask : Seq Bool -> Seq α -> Seq α
 @[simp] theorem size_nseq n (x : α) : size (nseq x n) = n := by
   sby elim: n
 
+-- syntax num "?" : ssrIntro
+-- elab_rules : tactic
+--   | `(ssrIntro| $n:num ?) =>
+--     Lean.Elab.Tactic.liftMetaTactic fun goal => do
+--       let (_, goal) <- goal.introNP n.getNat
+--       return [goal]
+
+
 @[simp] theorem mask_false (s : Seq α) (n : Nat) : mask (nseq false n) s = [] := by
   sby elim: s n=> [|???][]
 
@@ -92,8 +101,12 @@ theorem all_nthP (x0 : α) (p : α -> Prop) [DecidablePred p] (s : Seq α) :
   s = nseq x (size s) <-> all (· = x) s := by
    sorry
 
+theorem ltSS (a b : Nat) : ((a < b) <-> (Nat.succ a < Nat.succ b)) := by
+  move=> /==; omega
+
+-- (2)
 @[simp] theorem size_take (s : Seq α) : size (take n0 s) = if n0 < size s then n0 else size s := by
-  sorry
+  sby elim: s n0=> [//|s IHs x [//|n/=]]; srw IHs -ltSS; scase_if
 
 
 @[simp] theorem nth_take {n0 i : Nat} {s : Seq α} :
@@ -144,6 +157,9 @@ theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by sorry
 -- count_uniq_mem: clear at intro
 -- catCA_perm_ind: clear at revert
 -- subseqP: clear at rewrite
+
+-- macro_rules
+--   | `(ssrTriv| //) => `(tactic| omega)
 
 theorem subseqP (s1 s2 : Seq α) :
   (subseq s1 s2) <-> (exists m, size m = size s2 /\ s1 = mask m s2) := by

@@ -85,7 +85,7 @@ elab "scase_if" : tactic => newTactic do
   let name <- fresh "H"
   run `(tactic| by_cases $name : $t)
   allGoal $ run `(tactic| try simp only [↓reduceIte, $name:term])
-  allGoal $ run `(tactic| revert $name)
+  tryGoal $ allGoal $ run `(tactic| revert $name)
 
 -- def store : StateRefT Expr MetaM Unit
 
