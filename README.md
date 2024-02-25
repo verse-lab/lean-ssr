@@ -27,8 +27,10 @@ Now the following test file should compile:
 ```lean
 import Ssreflect.Lang
 
-example {α : Type} : α → α := by 
-  move=> x; trivial
+example {α : Type} : α → α := by
+  -- The following is euqivalen to 
+  -- intro x; trivial
+  move=> x//
 ```
 
 
