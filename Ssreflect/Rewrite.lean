@@ -112,6 +112,6 @@ def chipOfLoc (stx : Syntax) : Syntax :=
 elab_rules : tactic
   | `(srwRulesLoc| $[$ts]*) => elabTactic (annotate := (withTacticInfoContext <| chipOfLoc ·)) $ mkNullNode ts
 
-example (H : (True /\ False) /\ (True /\ False) = False) : True -> (True /\ False) /\ (True /\ False) = False := by
-  intro a
-  srw [-1]true_and true_and
+-- example (H : (True /\ False) /\ (True /\ False) = False) : True -> (True /\ False) /\ (True /\ False) = False := by
+--  intro a
+--  srw [-1]true_and true_and
