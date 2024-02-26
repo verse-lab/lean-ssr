@@ -3,9 +3,11 @@ import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Ssreflect.Elim
+import Lean.Parser.Tactic
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
+open Lean.Parser.Tactic
 
 /-
 Plan:
@@ -63,6 +65,11 @@ elab_rules : tactic
   | `(ssrTriv|  //) => run `(tactic| try ssr_triv)
   | `(ssrTriv|  /=) => run `(tactic| try dsimp)
   | `(ssrTriv| /==) => run `(tactic| try simp)
+
+/-
+def evalTriv : Tactic
+
+-/
 
 elab_rules : tactic
   | `(ssrTrivs| $ts:ssrTriv *) => for t in ts do allGoal <| evalTactic t
@@ -145,21 +152,20 @@ syntax (name:= ssrReverts) (ppSpace colGt (ssrRevert))* : ssrReverts
 elab_rules : tactic
   | `(ssrRevert|$i:ident) => do
       run  `(tactic| revert $i:term)
-
-elab_rules : tactic
-  | `(ssrReverts| $[$rs]*) => for r in rs do allGoal $ evalTactic r
   | `(ssrRevert|($t:term)) => do
       let h <- fresh "H"
       let goal <- getMainGoal
       let trm <- Term.elabTerm t none
       let goal <- goal.assert h.getId (<- inferType trm) trm
       setGoals [goal]
+  | `(ssrReverts| $[$rs]*) => for r in rs do allGoal $ evalTactic r
 
 elab t:tactic ":" is:ssrReverts : tactic => do
   evalTactic is; evalTactic t
 
 -- example (n m : α) : m = n := by
---   skip: n (Eq.refl n)
+--   skip: (Eq.refl n)
+
 
 -- example (n m : α) : m = n := by
 --   skip: n (Eq.refl n)
@@ -171,3 +177,41 @@ elab t:tactic ":" is:ssrReverts : tactic => do
 
 -- example (n m : α) : m = n := by
 --   skip: n (Eq.refl n)
+--   rw
+
+-- /-- *** Rewrite patterns *** -/
+
+
+declare_syntax_cat srwRule
+declare_syntax_cat srwRules
+declare_syntax_cat srwRuleLoc
+declare_syntax_cat srwRulesLoc
+syntax (name:= srwRule) term:max : srwRule
+syntax srwRule  (location)? : srwRuleLoc
+syntax (ppSpace colGt (srwRule))* : srwRules
+syntax (name:= srwRulesLoc) (ppSpace colGt (srwRuleLoc))* : srwRulesLoc
+syntax (name := srw) "srw" srwRules (location)? : tactic
+
+
+elab_rules : tactic
+  | `(srwRuleLoc| $t:term $l:location ?) =>
+      try do
+        evalTactic $ <- `(tactic| rw [$t:term] $(l)?)
+      catch | ex => throwErrorAt t ex.toMessageData
+
+def insertLocation (l : Option (TSyntax `Lean.Parser.Tactic.location)) (x : TSyntax `srwRule) : MacroM Syntax := do
+  if x.raw.isOfKind `srwRule then
+        let y <- `(srwRuleLoc| $(⟨x.raw.setKind `srwRule⟩):srwRule $l:location ?)
+        return y.raw
+      else return x.raw
+
+elab "srw" rs:srwRules l:(location)? : tactic =>
+  match rs with
+  | `(srwRules| $[$ts] *) => do
+    let ts <- ts.mapM (liftMacroM $ insertLocation l ·)
+    evalTactic $ mkNullNode ts
+  | _ => throwError ""
+
+example (H : (True /\ False) /\ (True /\ False) = False) : True -> (True /\ False) /\ (True /\ True) = False := by
+  intro a
+  srw true_and true_and

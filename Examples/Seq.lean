@@ -85,9 +85,17 @@ def index (x : α) := find (· = x)
   | x :: s', n' + 1 => x :: take n' s'
   | _, _ => []
 
-@[simp] def all (p : α -> Prop) [DecidablePred p] : Seq α -> Bool
-  | [] => true
+@[simp] def all (p : α -> Prop) : Seq α -> Prop
+  | [] => True
   | x :: xs => p x /\ all p xs
+
+@[simp] def allb (p : α -> Prop) [DecidablePred p] : Seq α -> Bool
+  | [] => true
+  | x :: xs => p x /\ allb p xs
+
+instance allP [DecidablePred p] (s : Seq α) : Decidable (all p s) := by
+  apply (decidable_of_bool (allb p s))
+  sby elim: s
 
 @[simp] def nth (x0 : α) : Seq α -> Nat -> α
   | _ :: s, .succ n => nth x0 s n
@@ -105,8 +113,12 @@ theorem ltSS (a b : Nat) : ((a < b) <-> (Nat.succ a < Nat.succ b)) := by
   move=> /==; omega
 
 -- (2)
-@[simp] theorem size_take (s : Seq α) : size (take n0 s) = if n0 < size s then n0 else size s := by
-  sby elim: s n0=> [//|s IHs x [//|n/=]]; srw IHs -ltSS; scase_if
+@[simp] theorem size_take (s : Seq α) : size (take n s) = if n < size s then n else size s := by
+  sby elim: s n=> [//|x s IHs [//|n/=]]; srw IHs -ltSS; scase_if
+
+
+  -- elim: s n0=> [//|s IHs x [//|n/=]]; srw IHs
+  -- sby elim: s n0=> [//|s IHs x [//|n/=]]; srw IHs -ltSS; scase_if
 
 
 @[simp] theorem nth_take {n0 i : Nat} {s : Seq α} :
@@ -163,14 +175,14 @@ theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by sorry
 
 theorem subseqP (s1 s2 : Seq α) :
   (subseq s1 s2) <-> (exists m, size m = size s2 /\ s1 = mask m s2) := by
-  elim: s2 s1=> [| s2 IHs2 y] [|s1 x]
+  elim: s2 s1=> [| y s2 IHs2] [|x s1]
   { simp; exists [] }
   { sby simp }
   { sby simp; exists (nseq false (Nat.succ (size s2))) }
-  simp [IHs2]; constructor=> [] m []def_s1 sz_m
+  simp [IHs2]; constructor=> [] m [] sz_m def_s1
   { sby exists ((x = y) :: m); simp [<-def_s1]; scase_if }
   scase_if=> ne_xy; rotate_right
-  { sby scase: m def_s1 sz_m=> [|m[]] //== }
+  { scase: m def_s1 sz_m=> [|[]] //== }
   generalize h : (index true m) = i at *
   shave def_m_i : take i m = nseq false (size (take i m))
   { simp [all_nthP true]=> j le; srw nth_take

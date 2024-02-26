@@ -24,7 +24,7 @@ syntax "[" (num)* "]" : srwPos
 syntax atomic("[" noWs "-") (num)* "]" : srwPos
 syntax (ident <|> ("(" term ")")) : srwTerm
 syntax (name:= srwRule) ((srwDir)? (srwIter)? (srwPos)? srwTerm) : srwRule
-syntax srwRule  (location)? : srwRuleLoc
+syntax (name:= srwRuleLoc) srwRule  (location)? : srwRuleLoc
 syntax (ppSpace colGt (srwRule <|> ssrTriv <|> ssrBasic))* : srwRules
 syntax (name:= srwRulesLoc) (ppSpace colGt (srwRuleLoc <|> ssrTriv <|> ssrBasic))* : srwRulesLoc
 syntax (name := srw) "srw" srwRules (location)? : tactic
@@ -92,6 +92,11 @@ elab_rules : tactic
         | none => evalTactic r
       catch | ex => throwErrorAt t ex.toMessageData
 
+def chipOfLoc (stx : Syntax) : Syntax :=
+  if stx.isOfKind `srwRuleLoc then
+    mkNode `swrRule $ stx[0].getArgs.filter fun arg => ¬ arg.isOfKind `location
+  else stx
+
 elab "srw" rs:srwRules l:(location)? : tactic =>
   match rs with
   | `(srwRules| $[$ts] *) => do
@@ -100,18 +105,11 @@ elab "srw" rs:srwRules l:(location)? : tactic =>
         let y <- `(srwRuleLoc| $(⟨x.raw.setKind `srwRule⟩):srwRule $l:location ?)
         return y.raw
       else return x.raw
-    elabTactic (annotate := (withTacticInfoContext ·[0])) $ mkNullNode ts
+    elabTactic (annotate := (withTacticInfoContext <| chipOfLoc ·)) $ mkNullNode ts
   | _ => throwError ""
 
-def chipOfLoc (stx : Syntax) : Syntax :=
-  if stx.isOfKind `srwRuleLoc then
-    mkNode `swrRule $ stx[0].getArgs.filter fun arg => ¬ arg.isOfKind `location
-  else stx
 
-
-elab_rules : tactic
-  | `(srwRulesLoc| $[$ts]*) => elabTactic (annotate := (withTacticInfoContext <| chipOfLoc ·)) $ mkNullNode ts
-
+-- #check Syntax
 -- example (H : (True /\ False) /\ (True /\ False) = False) : True -> (True /\ False) /\ (True /\ False) = False := by
---  intro a
---  srw [-1]true_and true_and
+--   intro a
+--   srw [-1]true_and true_and at H

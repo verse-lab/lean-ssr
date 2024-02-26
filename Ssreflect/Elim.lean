@@ -12,12 +12,13 @@ elab "scase" : tactic => newTactic do
     let name <- fresh "H"
     run `(tactic| intro $name:ident)
     run `(tactic| unhygienic cases $name:ident)
-    allGoal do
+    allGoal $ newTactic do
       let hypsNew <- getLCtx
-      for hyp in hypsNew do
-        unless hyps.contains hyp.fvarId do
-          run `(tactic| try revert $(mkIdent hyp.userName):ident)
-
+      for hyp in hypsNew.decls.toArray.reverse do
+        if hyp.isSome then
+          let hyp := hyp.get!
+          unless hyps.findFromUserName? hyp.userName |> Option.isSome do
+            tryGoal $ run `(tactic| revert $(mkIdent hyp.userName):ident)
 
 elab "elim" : tactic => newTactic do
     let hyps <- getLCtx
@@ -26,10 +27,11 @@ elab "elim" : tactic => newTactic do
     run `(tactic| unhygienic induction $name:ident)
     newTactic $ allGoal do
       let hypsNew <- getLCtx
-      -- IO.println s! "{hypsNew.decls.toArray.map (fun x => LocalDecl.userName <$> x)}"
-      for hyp in hypsNew do
-        unless hyps.findFromUserName? hyp.userName |> Option.isSome do
-          tryGoal $ run `(tactic| revert $(mkIdent hyp.userName):ident)
+      for hyp in hypsNew.decls.toArray.reverse do
+        if hyp.isSome then
+          let hyp := hyp.get!
+          unless hyps.findFromUserName? hyp.userName |> Option.isSome do
+            tryGoal $ run `(tactic| revert $(mkIdent hyp.userName):ident)
 
 structure stateVisit where
   idx : Nat := 1
@@ -89,5 +91,5 @@ elab "scase_if" : tactic => newTactic do
 
 -- def store : StateRefT Expr MetaM Unit
 
--- example (n : Nat) : if n = 0 then False else False := by
---   scase_if
+-- example (n : Nat) : True /\ False -> False := by
+--   scase

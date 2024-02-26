@@ -164,4 +164,4 @@ elab_rules : tactic
 
 
 -- example : True \/ True -> True -> True /\ True -> True := by
---   scase=> [ [a] [] {}b  | * ] //=
+--   scase=> [ [a] [] {}a  | * ] //=
