@@ -20,6 +20,8 @@ macro_rules |
 macro_rules |
   `(tactic| ssr_triv) => `(tactic| try solve | ((intros; ssr_triv_core); try (intros; simp_all; ssr_triv_core)))
 
+elab "sdone" : tactic => run `(tactic| solve | ssr_triv)
+
 declare_syntax_cat ssrTriv
 syntax "//" : ssrTriv
 syntax "/=" : ssrTriv
