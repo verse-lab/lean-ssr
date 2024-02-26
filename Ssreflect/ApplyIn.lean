@@ -40,6 +40,12 @@ private def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
 
 elab "apply" t:term "in" name:ident : tactic => newTactic do
   let i := (<- getLCtx).findFromUserName? name.getId
-  let t <- applyIn t i.get!; let ty <- inferType t
-  setGoals [<- (<- getMainGoal).assert name.getId ty t]
-  tryGoal $ run `(tactic| clear $name:ident)
+  if i.isSome then
+    let t <- applyIn t i.get!; let ty <- inferType t
+    setGoals [<- (<- getMainGoal).assert name.getId ty t]
+    tryGoal $ run `(tactic| clear $name:ident)
+  else throwErrorAt name "{name} should be in a local context"
+
+
+-- example (H : True) (HH : True -> False) : False := by
+--   -- apply
