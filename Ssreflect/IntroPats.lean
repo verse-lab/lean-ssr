@@ -29,6 +29,7 @@ syntax (name := ssrIntros) (ppSpace colGt (ssrIntro <|> ssrTriv <|> ssrBasic))* 
 -- intros
 syntax ident : ssrIntro
 syntax "?" : ssrIntro
+syntax "!" : ssrIntro
 syntax "*" : ssrIntro
 syntax ">" : ssrIntro
 syntax "_" : ssrIntro
@@ -57,6 +58,7 @@ syntax "{}" ident : ssrIntro
 elab_rules : tactic
     | `(ssrIntro|$i:ident) => run `(tactic| intro $i:ident)
     | `(ssrIntro| ?) => run `(tactic| intro _)
+    | `(ssrIntro| !) => run `(tactic| apply funext)
     | `(ssrIntro| *) => run `(tactic| intros)
     | `(ssrIntro| >) => introsDep
     | `(ssrIntro| _) => do
