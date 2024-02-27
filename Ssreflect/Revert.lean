@@ -152,8 +152,8 @@ elab_rules : tactic
   | `(ssrReverts| $[$ts]*) => elabTactic (annotate := withTacticInfoContextR) $ mkNullNode ts
 
 elab t:tactic ":" is:ssrReverts : tactic => do
-  let is := is.raw[0].getArgs.reverse
-  elabTactic (annotate := withTacticInfoContextR) $ mkNullNode is
+  let is' := is.raw[0].getArgs.reverse
+  elabTactic (annotate := (withTacticInfoContextR $ ·[0])) $ mkNullNode is'
   elabTactic t
 
 -- set_option pp.all true
@@ -162,5 +162,5 @@ elab t:tactic ":" is:ssrReverts : tactic => do
 @[simp↓ high] theorem iteIsFalse [Decidable p] (t e : α) (h : ¬ p) : (@ite _ _ (Decidable.isFalse h) t e) = e := by rfl
 
 -- example (x y : Nat) : if x = y then True else false := by
---   scase: [_ = _]
+--    scase: x y
 --   simp

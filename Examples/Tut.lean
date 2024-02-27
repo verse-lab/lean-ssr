@@ -33,7 +33,7 @@ Plan:
 
 -/
 
-/-- ***Automation*** -/
+/-- *** Automation *** -/
 
 syntax "ssr_triv_core" : tactic
 syntax "ssr_triv" : tactic
@@ -181,7 +181,6 @@ elab t:tactic ":" is:ssrReverts : tactic => do
 
 -- /-- *** Rewrite patterns *** -/
 
-
 declare_syntax_cat srwRule
 declare_syntax_cat srwRules
 declare_syntax_cat srwRuleLoc
@@ -201,9 +200,9 @@ elab_rules : tactic
 
 def insertLocation (l : Option (TSyntax `Lean.Parser.Tactic.location)) (x : TSyntax `srwRule) : MacroM Syntax := do
   if x.raw.isOfKind `srwRule then
-        let y <- `(srwRuleLoc| $(⟨x.raw.setKind `srwRule⟩):srwRule $l:location ?)
-        return y.raw
-      else return x.raw
+    let y <- `(srwRuleLoc| $(⟨x.raw.setKind `srwRule⟩):srwRule $l:location ?)
+    return y.raw
+  else return x.raw
 
 elab "srw" rs:srwRules l:(location)? : tactic =>
   match rs with
@@ -212,6 +211,6 @@ elab "srw" rs:srwRules l:(location)? : tactic =>
     evalTactic $ mkNullNode ts
   | _ => throwError ""
 
-example (H : (True /\ False) /\ (True /\ False) = False) : True -> (True /\ False) /\ (True /\ True) = False := by
-  intro a
-  srw true_and true_and
+-- example (H : (True /\ False) /\ (True /\ False) = False) : True -> (True /\ False) /\ (True /\ True) = False := by
+--   intro a
+--   srw true_and true_and

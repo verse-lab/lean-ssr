@@ -61,6 +61,15 @@ def mask : Seq Bool -> Seq α -> Seq α
   | .succ n => x :: nseq x n
 
 @[simp] theorem size_nseq n (x : α) : size (nseq x n) = n := by
+  /- proof 1 -/
+  -- induction n with
+  -- | zero => simp
+  -- | succ n ihn => dsimp; simp; rw [ihn]
+  /- proof 2 -/
+  -- elim: n=> [ // | n ihn /== ]; srw ihn
+  /- proof 3 -/
+  -- induction n <;> simp_all
+  /- proof 4 -/
   sby elim: n
 
 -- syntax num "?" : ssrIntro
@@ -85,6 +94,10 @@ def index (x : α) := find (· = x)
   | x :: s', n' + 1 => x :: take n' s'
   | _, _ => []
 
+-- all: https://github.com/math-comp/math-comp/blob/27b595cee274ade2fdc4a3a8e80213e3bb07a8bf/mathcomp/ssreflect/seq.v#L479
+-- all_nthP: https://github.com/math-comp/math-comp/blob/27b595cee274ade2fdc4a3a8e80213e3bb07a8bf/mathcomp/ssreflect/seq.v#L1587C7-L1587C15
+-- all_pred1P: https://github.com/math-comp/math-comp/blob/27b595cee274ade2fdc4a3a8e80213e3bb07a8bf/mathcomp/ssreflect/seq.v#L1250
+
 @[simp] def all (p : α -> Prop) : Seq α -> Prop
   | [] => True
   | x :: xs => p x /\ all p xs
@@ -103,10 +116,12 @@ instance allP [DecidablePred p] (s : Seq α) : Decidable (all p s) := by
   | [], _           => x0
 
 theorem all_nthP (x0 : α) (p : α -> Prop) [DecidablePred p] (s : Seq α) :
-   (all p s) <-> ∀ i, i < size s -> p (nth x0 s i) := by sorry
+   all p s =
+   ∀ i, i < size s -> p (nth x0 s i) := by sorry
 
 @[simp↓] theorem all_pred1P (s : Seq α) (x : α) :
-  s = nseq x (size s) <-> all (· = x) s := by
+  (s = nseq x (size s)) =
+  all (· = x) s := by
    sorry
 
 theorem ltSS (a b : Nat) : ((a < b) <-> (Nat.succ a < Nat.succ b)) := by
@@ -114,7 +129,19 @@ theorem ltSS (a b : Nat) : ((a < b) <-> (Nat.succ a < Nat.succ b)) := by
 
 -- (2)
 @[simp] theorem size_take (s : Seq α) : size (take n s) = if n < size s then n else size s := by
-  sby elim: s n=> [//|x s IHs [//|n/=]]; srw IHs -ltSS; scase_if
+  /- proof 1 -/
+  induction s generalizing n with
+  | nil => simp
+  | cons x s IHs => {
+    cases n with
+    | zero => simp
+    | succ n => {
+      simp; rw [IHs]; simp [<-ltSS]
+      by_cases h: n < size s <;> simp [h]
+    }
+  }
+  /- proof 2 -/
+  -- elim: s n=> [//|x s IHs [//|n/=]]; srw IHs -ltSS; scase_if
 
 
   -- elim: s n0=> [//|s IHs x [//|n/=]]; srw IHs
