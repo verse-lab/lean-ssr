@@ -14,7 +14,7 @@ variable {α : Type} [DecidableEq α]
   | _ :: xs => Nat.succ $ size xs
 
 -- (1)
-def size0nil (s : Seq α) : size s = 0 -> s = [] := by
+theorem size0nil (s : Seq α) : 0 = size s -> s = [] := by
   sby scase: s
 
 @[simp] def beq : Seq α -> Seq α -> Bool
@@ -87,7 +87,10 @@ def mask : Seq Bool -> Seq α -> Seq α
   | [] => 0
   | x :: xs => if p x then 0 else Nat.succ $ find p xs
 
-def index (x : α) := find (· = x)
+def index (x : α) := find (x = ·)
+
+@[simp] def index_cons (s : Seq α) (y x : α) :
+  index x (y :: s) = if x = y then 0 else  Nat.succ $ index x s := by rfl
 
 @[simp] def take (n : Nat) (s : Seq α) :=
   match s, n with
@@ -115,16 +118,24 @@ instance allP [DecidablePred p] (s : Seq α) : Decidable (all p s) := by
   | x :: _, 0       => x
   | [], _           => x0
 
-theorem all_nthP (x0 : α) (p : α -> Prop) [DecidablePred p] (s : Seq α) :
-   all p s =
-   ∀ i, i < size s -> p (nth x0 s i) := by sorry
+theorem all_nthP (x : α) (p : α -> Prop) [DecidablePred p] (s : Seq α) :
+  all p s =
+  ∀ i, i < size s -> p (nth x s i) := by
+  elim: s=> [/==|/== s ss ->]
+  { omega }
+  constructor=> [[px allP] [] //= i ?|allP]
+  { sby apply allP; omega }
+  constructor=> [|i ?]
+  { sby apply (allP 0) }
+  sby apply (allP (.succ i)); omega
 
 @[simp↓] theorem all_pred1P (s : Seq α) (x : α) :
   (s = nseq x (size s)) =
-  all (· = x) s := by
-   sorry
+  all (x = ·) s := by
+    elim: s=> //==
+    sorry
 
-theorem ltSS (a b : Nat) : ((a < b) <-> (Nat.succ a < Nat.succ b)) := by
+theorem ltSS (a b : Nat) : (a < b) = (Nat.succ a < Nat.succ b) := by
   move=> /==; omega
 
 -- (2)
@@ -140,7 +151,7 @@ theorem ltSS (a b : Nat) : ((a < b) <-> (Nat.succ a < Nat.succ b)) := by
       by_cases h: n < size s <;> simp [h]
     }
   }
-  /- proof 2 -/
+  /- proof 2  -/
   -- elim: s n=> [//|x s IHs [//|n/=]]; srw IHs -ltSS; scase_if
 
 
@@ -148,29 +159,37 @@ theorem ltSS (a b : Nat) : ((a < b) <-> (Nat.succ a < Nat.succ b)) := by
   -- sby elim: s n0=> [//|s IHs x [//|n/=]]; srw IHs -ltSS; scase_if
 
 
-@[simp] theorem nth_take {n0 i : Nat} {s : Seq α} :
-  i < n0 → nth x0 (take n0 s) i = nth x0 s i := by
-  sorry
+@[simp] theorem nth_take {i : Nat} {s : Seq α} :
+  i < n → nth x (take n s) i = nth x s i := by
+  sby elim: s n i=> // > IHs []//= ? []//== *; apply IHs; omega
 
-theorem before_find a [DecidablePred a] : i < find a s → ¬ a (nth x0 s i) :=
-  sorry
+theorem before_find a [DecidablePred a] : i < find a s → ¬ a (nth x0 s i) := by
+  elim: s i=> //= > IHs []//== <;> scase_if=> //
+  sby move=> *; apply IHs; omega
 
 theorem take_oversize (s : Seq α) : size s ≤ n → take n s = s := by
-  sorry
+  sby elim: s n=> // > /[swap][] //== ? /[swap] ? ->; omega
 
 @[simp] def drop : Nat -> Seq α -> Seq α
   | n' + 1, _ :: s' => drop n' s'
   | _, s => s
 
-@[simp] theorem size_cat : size (s1 ++ s2) = size s1 + size s2 := by sorry
-@[simp] theorem size_drop : size (drop n0 s) = size s - n0 := by sorry
+@[simp] theorem size_cat : size (s1 ++ s2) = size s1 + size s2 := by
+  sby elim: s1=> //== ?? ->; omega
+
+@[simp] theorem size_drop : size (drop n s) = size s - n := by
+  sby elim: s n=> //== > /[swap][]
+
+
 def behead : Seq α -> Seq α
   | _ :: xs => xs
   | _ => []
 
 @[simp] theorem behead_cons : behead (x :: xs) = xs := by rfl
-@[simp] theorem cat_take_drop n0 (s : Seq α) : take n0 s ++ drop n0 s = s := by sorry
-theorem cat_cons : x :: s1 ++ s2 = x :: (s1 ++ s2) := by sorry
+@[simp] theorem cat_take_drop n0 (s : Seq α) : take n0 s ++ drop n0 s = s := by
+  sby elim: s n0=> // > /[swap][]
+theorem cat_cons : x :: s1 ++ s2 = x :: (s1 ++ s2) := by
+  sby elim: s1 x
 
 @[simp] def rcons : Seq α -> α -> Seq α
   | x :: s', z => x :: rcons s' z
@@ -185,13 +204,24 @@ theorem cat_cons : x :: s1 ++ s2 = x :: (s1 ++ s2) := by sorry
   | [] => x0
 
 
-theorem lastI : x :: s = rcons (belast x s) (last x s) := by sorry
-theorem cat_rcons : rcons s1 x ++ s2 = s1 ++ x :: s2 := by sorry
-theorem mask_cat : size m1 = size s1 → mask (m1 ++ m2) (s1 ++ s2) = mask m1 s1 ++ mask m2 s2 := by sorry
-theorem drop_nth (x0 : α) : n < size s → drop n s = nth x0 s n :: drop (n+1) s := by sorry
-theorem nth_index (s : Seq α) : x ∈ s → nth x0 s (index x s) = x := by sorry
-theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by sorry
-@[simp] theorem size_belast : size (belast x s) = size s := by sorry
+theorem lastI : x :: s = rcons (belast x s) (last x s) := by
+  sby elim: s x
+theorem cat_rcons : rcons s1 x ++ s2 = s1 ++ x :: s2 := by
+  sby elim: s1 x
+theorem mask_cat : size m1 = size s1 → mask (m1 ++ m2) (s1 ++ s2) = mask m1 s1 ++ mask m2 s2 := by
+  sby elim: m1 s1=> [/== ? /size0nil->|/== [] ?? []]
+
+theorem drop_nth (x0 : α) : n < size s → drop n s = nth x0 s n :: drop (n+1) s := by
+  sby elim: s n=> // x s /[swap][]//= ? /[swap] ? -> //; omega
+
+theorem nth_index (s : Seq α) : x ∈ s → nth x0 s (index x s) = x := by
+  sby elim: s=> //== >; scase_if
+
+theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by
+  sby elim: s=> //== >; scase_if=> //== ? <-; omega
+
+@[simp] theorem size_belast : size (belast x s) = size s := by
+  sby elim: s x
 
 -- count_uniq_mem: clear at intro
 -- catCA_perm_ind: clear at revert
@@ -213,8 +243,10 @@ theorem subseqP (s1 s2 : Seq α) :
   generalize h : (index true m) = i at *
   shave def_m_i : take i m = nseq false (size (take i m))
   { simp [all_nthP true]=> j le; srw nth_take
-    { shave//: ¬nth true m j; apply before_find (· = _)
-      scase_if: le <;> srw index at h <;> omega }
+    { shave: ¬(true = nth true m j);
+      { apply before_find (_ = ·)
+        scase_if: le <;> srw index at h <;> omega }
+      generalize (nth true m j) = b; sby scase:b }
     scase_if: le=> //== ? le
     sby apply (Nat.lt_of_lt_of_le le) }
   shave lt_i_m : i < size m
