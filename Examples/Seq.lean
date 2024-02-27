@@ -132,8 +132,8 @@ theorem all_nthP (x : α) (p : α -> Prop) [DecidablePred p] (s : Seq α) :
 @[simp↓] theorem all_pred1P (s : Seq α) (x : α) :
   (s = nseq x (size s)) =
   all (x = ·) s := by
-    elim: s=> //==
-    sorry
+    elim: s x=> //== >/[swap]?<-
+    sby constructor=> [] ->
 
 theorem ltSS (a b : Nat) : (a < b) = (Nat.succ a < Nat.succ b) := by
   move=> /==; omega
