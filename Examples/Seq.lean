@@ -148,4 +148,39 @@ theorem last_ind (P : Seq α → Prop) :
   { sby srw cats0 }
   { sby srw -cat_rcons; apply IHs; apply Hlast }
 
+-- Sequence indexing
+
+@[simp] def nth [Inhabited α] (s : Seq α) (n : Nat) : α :=
+  match s with
+  | [] => default
+  | x :: s' => match n with
+    | 0 => x
+    | n' + 1 => nth s' n'
+
+@[simp] def set_nth [Inhabited α] (s : Seq α) (n : Nat) (y : α) : Seq α :=
+  match s with
+  | [] => ncons n default [y]
+  | x :: s' => match n with
+    | 0 => y :: s'
+    | n' + 1 => x :: set_nth s' n' y
+
+theorem nth0 [Inhabited α] (s : Seq α) : nth s 0 = head s := by elim: s=>//=
+
+theorem nth_default [Inhabited α] (s : Seq α) (n : Nat) : size s <= n -> nth s n = default := by
+  -- NOTE: this solves the goal in Coq; there's probably some lemmas we're missing
+  elim: s n=>[|x s IHs] [] //=
+  { intro n Hle; apply IHs; omega }
+
+-- requires some facts/reasoning principles about `<=`
+theorem if_nth [Inhabited α] (s : Seq α) (b : Bool) (n : Nat) :
+  b || (size s <= n) → (if b then nth s n else default) = nth s n := by sorry
+
+theorem nth_nil [Inhabited α] (n : Nat) : nth ([] : Seq α) n = default := by sdone
+
+theorem nth_seq1 [Inhabited α] (n : Nat) (x : α) :
+  nth [x] n = if n == 0 then x else default := by elim: n=>//=
+
+theorem last_nth [Inhabited α] (x : α) (s : Seq α) : last x s = nth (x :: s) (size s) := by
+  elim: s x => [|y s IHs] x //=
+
 end seq
