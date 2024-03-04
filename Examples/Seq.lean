@@ -129,5 +129,23 @@ theorem belast_rcons (x : α) (s : Seq α) (y : α) : belast x (rcons s y) = x :
 
 theorem cat_rcons (x : α) (s1 s2 : Seq α) : rcons s1 x ++ s2 = s1 ++ x :: s2 := by elim: s1=>//=
 
+theorem rcons_cat (x : α) (s1 s2 : Seq α) : rcons (s1 ++ s2) x = s1 ++ rcons s2 x := by elim: s1=>//=
+
+inductive last_spec : Seq α → Prop where
+  | last_nil                        : last_spec []
+  | last_rcons (s : Seq α) (x : α)  : last_spec (rcons s x)
+
+theorem lastP (s : Seq α) : last_spec s := by
+  scase: s => [|x s]
+  { left }
+  { srw lastI; right }
+
+theorem last_ind (P : Seq α → Prop) :
+  P [] → (∀ s x, P s → P (rcons s x)) → ∀ s, P s := by
+  move=> Hnil Hlast s <;> srw -(cat0s s);
+  revert Hnil; generalize [] = s1; revert s1
+  elim: s=>[|x s2 IHs] s1 Hs1
+  { sby srw cats0 }
+  { sby srw -cat_rcons; apply IHs; apply Hlast }
 
 end seq
