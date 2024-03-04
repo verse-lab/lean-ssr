@@ -8,7 +8,7 @@ open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 -- open Lean.Elab.Tactic.Conv.PatternMatchState
 
-elab "case" : tactic => newTactic do
+elab "scase" : tactic => newTactic do
     let hyps <- getLCtx
     let name <- fresh "H"
     run `(tactic| intro $name:ident)
