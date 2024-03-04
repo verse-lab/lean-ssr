@@ -70,12 +70,12 @@ elab_rules : tactic
     | `(ssrIntro| ->) => do
       let name ← fresh "H"
       run `(tactic| intros $name)
-      run `(tactic| rw [$name:ident])
+      run `(tactic| first | rw [$name:ident] | fail "rewrite failed")
       run `(tactic| try clear $name)
     | `(ssrIntro| <-) => newTactic do
       let name ← fresh "H"
       run `(tactic| intros $name)
-      run `(tactic| rw [<-$name:ident])
+      run `(tactic| first | rw [<-$name:ident] | fail "rewrite failed")
       run `(tactic| try clear $name)
 
     -- -- switches
