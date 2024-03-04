@@ -83,13 +83,14 @@ instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 /\ P2) (
 
 -- #reduce Reflect.toProp (evenb 0)
 
-def generatePropSimp (nb : Name) : TermElabM Unit := do
+def generatePropSimp (np nb : Name) : TermElabM Unit := do
   let some eqs <- getEqnsFor? nb | throwError s!"No reduction rules for {nb}"
+  let mut names : Array Name := #[]
   for eq in eqs do
     let env <- getEnv
     let some c := env.find? eq | throwError s!"No reduction rule with name {eq}"
     let cT := c.type
-    forallTelescopeReducing cT fun args cT => do
+    let name <- forallTelescopeReducing cT fun args cT => do
       let rhsb := cT.getAppArgs[1]!
       let lhsb := cT.getAppArgs[2]!
 
@@ -120,11 +121,14 @@ def generatePropSimp (nb : Name) : TermElabM Unit := do
       let s := simpExtension.getState env
       let s <- s.addConst name
       modifyEnv (fun env => simpExtension.modifyState env (fun _ => s))
+      return name
+    names := names.push name
+    modifyEnv (fun env => simpExtension.modifyState env (·.registerDeclToUnfoldThms np names))
 
-elab "#reflect" ib:ident : command => do
-  liftTermElabM <| generatePropSimp ib.getId
+elab "#reflect" ip:ident ib:ident : command => do
+  liftTermElabM <| generatePropSimp ip.getId ib.getId
 
-#reflect evenb
+#reflect even evenb
 
--- example (n : Nat) : even 0 /\ (¬ even 1) /\ even (n +2) := by
---   simp
+-- example (n : Nat) : evenb 0 /\ even 0 /\ (¬ even 1) /\ even (n +2) := by
+--   simp [-even]
