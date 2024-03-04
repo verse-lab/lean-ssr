@@ -53,7 +53,13 @@ def reflect_of_decide [inst1: Decidable P] : b = decide P -> Reflect P b := by
   intros r; apply reflect_of_equiv; rw [r]
   cases inst1 <;> simp_all
 
-@[default_instance]
+macro "reflect" n:num : attr =>
+  `(attr| default_instance 1000+$n)
+
+macro "reflect" : attr =>
+  `(attr| default_instance 1000)
+
+@[reflect 1]
 instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
   match n with
   | 0 => by simp <;> repeat constructor
@@ -65,16 +71,17 @@ instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
     apply Reflect.F <;> try assumption
     intro n; cases n; contradiction
 
-
-@[default_instance]
+@[reflect]
 instance : Reflect True true := by apply Reflect.T <;> simp_all
-@[default_instance]
+@[reflect]
 instance ReflectFalse : Reflect False false := by apply Reflect.F <;> simp_all
-@[default_instance]
+@[reflect 1]
 instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 /\ P2) (b1 && b2) := by
   intros i1 i2; apply reflect_of_decide
   by_cases h : P1 <;> cases i1 <;> simp_all
 
+
+-- #reduce Reflect.toProp (evenb 0)
 
 def generatePropSimp (nb : Name) : TermElabM Unit := do
   let some eqs <- getEqnsFor? nb | throwError s!"No reduction rules for {nb}"
@@ -85,14 +92,24 @@ def generatePropSimp (nb : Name) : TermElabM Unit := do
     forallTelescopeReducing cT fun args cT => do
       let rhsb := cT.getAppArgs[1]!
       let lhsb := cT.getAppArgs[2]!
-      let rhs <- mkAppOptM ``Reflect.toProp #[rhsb, none, none]
-      let lhs <- mkAppOptM ``Reflect.toProp #[lhsb, none, none]
+
+      let rhsbs <- PrettyPrinter.delab rhsb
+      let t <- `(term| Reflect.toProp $rhsbs)
+      let rhs <- Term.elabTermAndSynthesize t none
+
+      let lhsbs <- PrettyPrinter.delab lhsb
+      let t <- `(term| Reflect.toProp $lhsbs)
+      let lhs <- elabTermAndSynthesize t none
       let rhs <- withTransparency (mode := TransparencyMode.all) <| reduce rhs (skipProofs := false) (skipTypes := false)
       let lhs <- withTransparency (mode := TransparencyMode.all) <| reduce lhs (skipProofs := false) (skipTypes := false)
       let type <- mkForallFVars args $ <- mkEq rhs lhs
       let value <- lambdaTelescope c.value! fun args _ => do
         let thm <- mkAppOptM c.name (args.map Option.some)
-        let body <- mkAppOptM ``toPropEq #[none, none, none, none, thm, none, none]
+
+        let thms <- PrettyPrinter.delab thm
+        let t <- `(term| toPropEq $thms)
+        let body <- elabTermAndSynthesize t none
+
         mkLambdaFVars args body
       let name := c.name ++ "_Prop"
       addDecl <| Declaration.thmDecl {
@@ -103,3 +120,11 @@ def generatePropSimp (nb : Name) : TermElabM Unit := do
       let s := simpExtension.getState env
       let s <- s.addConst name
       modifyEnv (fun env => simpExtension.modifyState env (fun _ => s))
+
+elab "#reflect" ib:ident : command => do
+  liftTermElabM <| generatePropSimp ib.getId
+
+#reflect evenb
+
+-- example (n : Nat) : even 0 /\ (¬ even 1) /\ even (n +2) := by
+--   simp
