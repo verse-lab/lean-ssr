@@ -2,6 +2,8 @@ import Ssreflect.Lang
 import Std.Data.List
 import Std.Tactic.Omega
 import Examples.Nat
+-- import Lean.Elab.Tactic
+-- import Lean
 
 notation "Seq" => List
 
@@ -76,7 +78,7 @@ theorem cat_cons (x : α) (s1 s2 : Seq α) : (x :: s1) ++ s2 = x :: (s1 ++ s2) :
 
 theorem cat_nseq (n : Nat) (x : α) (s : Seq α) : nseq n x ++ s = ncons n x s := by
   elim: n=>//
-  srw nseq
+  srw nseq//
 
 
 theorem nseqD (n1 n2 : Nat) (x : α) : nseq n1 x ++ nseq n2 x = nseq (n1 + n2) x := by
@@ -166,19 +168,49 @@ theorem last_ind (P : Seq α → Prop) :
 
 theorem nth0 [Inhabited α] (s : Seq α) : nth s 0 = head s := by elim: s=>//=
 
+-- <= is Defined as a inductive predicate on ℕ. But we want to behave as `leb` defined below
+-- This `leb` defintion exactlu follows the one defined in mathcomp/ssrnat.v
+-- In particula we want `n+1 <= m+1` to be always simplified to `n <= m`
+-- To achive such behaviour we simply `#refelct` two Definitions
+@[simp] def leb : Nat -> Nat -> Bool
+  | n+1, m+1 => leb n m
+  | 0, _ => true
+  | _, _ => false
+
+
+@[reflect 1]
+instance (n m : Nat) : Reflect (n <= m) (leb n m) := by
+  apply reflect_of_equiv
+  elim: n m=> //== ?/[swap][]//=?->
+  omega
+
+#reflect Nat.le leb
+
+
 theorem nth_default [Inhabited α] (s : Seq α) (n : Nat) : size s <= n -> nth s n = default := by
   -- NOTE: this solves the goal in Coq; there's probably some lemmas we're missing
   elim: s n=>[|x s IHs] [] //=
-  { intro n Hle; apply IHs; omega }
+  -- { intro n Hle; apply IHs; omega }
 
 -- requires some facts/reasoning principles about `<=`
 theorem if_nth [Inhabited α] (s : Seq α) (b : Bool) (n : Nat) :
   b || (size s <= n) → (if b then nth s n else default) = nth s n := by sorry
 
+-- We might not want to talk about Booleans at all. Consider the following formulation
+theorem if_nthProp [Inhabited α] [Decidable P] (s : Seq α) (n : Nat) :
+  P ∨ (size s <= n) → (if P then nth s n else default) = nth s n := by
+  sby scase_if=> //== ? /nth_default
+
+
 theorem nth_nil [Inhabited α] (n : Nat) : nth ([] : Seq α) n = default := by sdone
 
 theorem nth_seq1 [Inhabited α] (n : Nat) (x : α) :
   nth [x] n = if n == 0 then x else default := by elim: n=>//=
+
+-- Again, screw Bools
+theorem nth_seq1Prop [Inhabited α] (n : Nat) (x : α) :
+  nth [x] n = if n = 0 then x else default := by elim: n=>//=
+
 
 theorem last_nth [Inhabited α] (x : α) (s : Seq α) : last x s = nth (x :: s) (size s) := by
   elim: s x => [|y s IHs] x //=

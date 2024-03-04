@@ -2,6 +2,7 @@ import Lean
 import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
+import Std.Tactic.Omega
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
@@ -83,10 +84,13 @@ instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 /\ P2) (
 
 -- #reduce Reflect.toProp (evenb 0)
 
-def generatePropSimp (np nb : Name) : TermElabM Unit := do
+def generatePropSimp (np nb : Expr) : TermElabM Unit := do
+  let (some np, some nb) := (np.constName?, nb.constName?) | throwError s!"Not a constant"
+  -- let .some eqs := (eqnsExt.getState (env) |>.map.find? nb) | failure
   let some eqs <- getEqnsFor? nb | throwError s!"No reduction rules for {nb}"
   let mut names : Array Name := #[]
   for eq in eqs do
+    -- dbg_trace "Bool:{eq}"
     let env <- getEnv
     let some c := env.find? eq | throwError s!"No reduction rule with name {eq}"
     let cT := c.type
@@ -101,8 +105,8 @@ def generatePropSimp (np nb : Name) : TermElabM Unit := do
       let lhsbs <- PrettyPrinter.delab lhsb
       let t <- `(term| Reflect.toProp $lhsbs)
       let lhs <- elabTermAndSynthesize t none
-      let rhs <- withTransparency (mode := TransparencyMode.all) <| reduce rhs (skipProofs := false) (skipTypes := false)
-      let lhs <- withTransparency (mode := TransparencyMode.all) <| reduce lhs (skipProofs := false) (skipTypes := false)
+      let rhs <- withTransparency (mode := TransparencyMode.reducible) <| reduce rhs (skipProofs := false) (skipTypes := false)
+      let lhs <- withTransparency (mode := TransparencyMode.reducible) <| reduce lhs (skipProofs := false) (skipTypes := false)
       let type <- mkForallFVars args $ <- mkEq rhs lhs
       let value <- lambdaTelescope c.value! fun args _ => do
         let thm <- mkAppOptM c.name (args.map Option.some)
@@ -117,6 +121,7 @@ def generatePropSimp (np nb : Name) : TermElabM Unit := do
         name, type, value
         levelParams := c.levelParams
       }
+      -- dbg_trace "Prop:{name}"
       let env <- getEnv
       let s := simpExtension.getState env
       let s <- s.addConst name
@@ -125,10 +130,25 @@ def generatePropSimp (np nb : Name) : TermElabM Unit := do
     names := names.push name
     modifyEnv (fun env => simpExtension.modifyState env (·.registerDeclToUnfoldThms np names))
 
-elab "#reflect" ip:ident ib:ident : command => do
-  liftTermElabM <| generatePropSimp ip.getId ib.getId
+elab "#reflect" ip:ident ib:ident : command => liftTermElabM <| do
+  let ip <- Term.elabTerm ip none
+  let ib <- Term.elabTerm ib none
+  generatePropSimp ip ib
 
 #reflect even evenb
 
--- example (n : Nat) : evenb 0 /\ even 0 /\ (¬ even 1) /\ even (n +2) := by
---   simp [-even]
+-- @[simp] def leb' : Nat -> Nat -> Bool
+--   | n+1, m+1 => leb' n m
+--   | 0, _ => true
+--   | _, _ => false
+
+-- example n : leb' (.succ n) (.succ n) := by dsimp; sorry
+
+-- @[reflect 2]
+-- instance (n m : Nat) : Reflect (LE.le n m) (leb' n m) := by sorry
+-- #reflect Nat.le leb'
+
+-- set_option pp.raw true
+
+-- example (n m : Nat) : (Nat.succ n) <= (Nat.succ m) := by
+--   simp
