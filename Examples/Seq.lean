@@ -1,7 +1,7 @@
 import Ssreflect.Lang
 import Std.Data.List
 import Std.Tactic.Omega
-
+import Examples.Nat
 
 notation "Seq" => List
 
@@ -13,7 +13,6 @@ variable {α : Type} [DecidableEq α]
   | [] => 0
   | _ :: xs => Nat.succ $ size xs
 
--- (1)
 theorem size0nil (s : Seq α) : 0 = size s -> s = [] := by
   sby scase: s
 
@@ -24,241 +23,111 @@ theorem size0nil (s : Seq α) : 0 = size s -> s = [] := by
 
 def nilp (s : Seq α) : Bool := size s = 0
 
--- instance nilP (s : Seq α) : Decidable (s = []) := by
---   apply (decidable_of_bool (nilp s))
---   sby scase:s
+-- Lemma nilP s : reflect (s = [::]) (nilp s).
 
-instance : DecidableEq (Seq α) := by
-  move=> x y; apply (decidable_of_bool (beq x y))
-  sby elim: x y => [[]|???[]]
+def ohead : Seq α -> Option α
+  | [] => none
+  | x :: _ => some x
 
-
-
-def mask : Seq Bool -> Seq α -> Seq α
-  | b :: m', x :: s' => if b then x :: mask m' s' else mask m' s'
-  | _, _ => []
-
-@[simp] theorem mask_eq1 :
-  mask (b :: m') (x :: s') = if b then x :: mask m' s' else mask m' s' := by rfl
-
-@[simp] theorem mask_eq2 :
-  mask [] x = [] := by rfl
-
-@[simp] theorem mask_eq3 :
-  mask x ([] : List α) = [] := by sby scase: x
-
-
-@[simp] def subseq (s1 : Seq α) (s2 : Seq α) : Bool :=
-  match s2 with
-  | y :: s2' =>
-    match s1 with
-    | x :: s1' => subseq (if x = y then s1' else s1) s2'
-    | _ => true
-  | _ => s1 = []
-
-@[simp] def nseq (x : α) : Nat -> Seq α
-  | 0 => []
-  | .succ n => x :: nseq x n
-
-@[simp] theorem size_nseq n (x : α) : size (nseq x n) = n := by
-  /- proof 1 -/
-  -- induction n with
-  -- | zero => simp
-  -- | succ n ihn => dsimp; simp; rw [ihn]
-  /- proof 2 -/
-  -- elim: n=> [ // | n ihn /== ]; srw ihn
-  /- proof 3 -/
-  -- induction n <;> simp_all
-  /- proof 4 -/
-  sby elim: n
-
--- syntax num "?" : ssrIntro
--- elab_rules : tactic
---   | `(ssrIntro| $n:num ?) =>
---     Lean.Elab.Tactic.liftMetaTactic fun goal => do
---       let (_, goal) <- goal.introNP n.getNat
---       return [goal]
-
-
-@[simp] theorem mask_false (s : Seq α) (n : Nat) : mask (nseq false n) s = [] := by
-  sby elim: s n=> [|???][]
-
-@[simp] def find (p : α -> Prop) [DecidablePred p] : Seq α -> Nat
-  | [] => 0
-  | x :: xs => if p x then 0 else Nat.succ $ find p xs
-
-def index (x : α) := find (x = ·)
-
-@[simp] def index_cons (s : Seq α) (y x : α) :
-  index x (y :: s) = if x = y then 0 else  Nat.succ $ index x s := by rfl
-
-@[simp] def take (n : Nat) (s : Seq α) :=
-  match s, n with
-  | x :: s', n' + 1 => x :: take n' s'
-  | _, _ => []
-
--- all: https://github.com/math-comp/math-comp/blob/27b595cee274ade2fdc4a3a8e80213e3bb07a8bf/mathcomp/ssreflect/seq.v#L479
--- all_nthP: https://github.com/math-comp/math-comp/blob/27b595cee274ade2fdc4a3a8e80213e3bb07a8bf/mathcomp/ssreflect/seq.v#L1587C7-L1587C15
--- all_pred1P: https://github.com/math-comp/math-comp/blob/27b595cee274ade2fdc4a3a8e80213e3bb07a8bf/mathcomp/ssreflect/seq.v#L1250
-
-@[simp] def all (p : α -> Prop) : Seq α -> Prop
-  | [] => True
-  | x :: xs => p x /\ all p xs
-
-@[simp] def allb (p : α -> Prop) [DecidablePred p] : Seq α -> Bool
-  | [] => true
-  | x :: xs => p x /\ allb p xs
-
-instance allP [DecidablePred p] (s : Seq α) : Decidable (all p s) := by
-  apply (decidable_of_bool (allb p s))
-  sby elim: s
-
-@[simp] def nth (x0 : α) : Seq α -> Nat -> α
-  | _ :: s, .succ n => nth x0 s n
-  | x :: _, 0       => x
-  | [], _           => x0
-
-theorem all_nthP (x : α) (p : α -> Prop) [DecidablePred p] (s : Seq α) :
-  all p s =
-  ∀ i, i < size s -> p (nth x s i) := by
-  elim: s=> [/==|/== s ss ->]
-  { omega }
-  constructor=> [[px allP] [] //= i ?|allP]
-  { sby apply allP; omega }
-  constructor=> [|i ?]
-  { sby apply (allP 0) }
-  sby apply (allP (.succ i)); omega
-
-@[simp↓] theorem all_pred1P (s : Seq α) (x : α) :
-  (s = nseq x (size s)) =
-  all (x = ·) s := by
-    elim: s x=> //== >/[swap]?<-
-    sby constructor=> [] ->
-
-theorem ltSS (a b : Nat) : (a < b) = (Nat.succ a < Nat.succ b) := by
-  move=> /==; omega
-
--- (2)
-@[simp] theorem size_take (s : Seq α) : size (take n s) = if n < size s then n else size s := by
-  /- proof 1 -/
-  induction s generalizing n with
-  | nil => simp
-  | cons x s IHs => {
-    cases n with
-    | zero => simp
-    | succ n => {
-      simp; rw [IHs]; simp [<-ltSS]
-      by_cases h: n < size s <;> simp [h]
-    }
-  }
-  /- proof 2  -/
-  -- elim: s n=> [//|x s IHs [//|n/=]]; srw IHs -ltSS; scase_if
-
-
-  -- elim: s n0=> [//|s IHs x [//|n/=]]; srw IHs
-  -- sby elim: s n0=> [//|s IHs x [//|n/=]]; srw IHs -ltSS; scase_if
-
-
-@[simp] theorem nth_take {i : Nat} {s : Seq α} :
-  i < n → nth x (take n s) i = nth x s i := by
-  sby elim: s n i=> // > IHs []//= ? []//== *; apply IHs; omega
-
-theorem before_find a [DecidablePred a] : i < find a s → ¬ a (nth x0 s i) := by
-  elim: s i=> //= > IHs []//== <;> scase_if=> //
-  sby move=> *; apply IHs; omega
-
-theorem take_oversize (s : Seq α) : size s ≤ n → take n s = s := by
-  sby elim: s n=> // > /[swap][] //== ? /[swap] ? ->; omega
-
-@[simp] def drop : Nat -> Seq α -> Seq α
-  | n' + 1, _ :: s' => drop n' s'
-  | _, s => s
-
-@[simp] theorem size_cat : size (s1 ++ s2) = size s1 + size s2 := by
-  sby elim: s1=> //== ?? ->; omega
-
-@[simp] theorem size_drop : size (drop n s) = size s - n := by
-  sby elim: s n=> //== > /[swap][]
-
+def head [Inhabited α] : Seq α -> α
+  | [] => default
+  | x :: _ => x
 
 def behead : Seq α -> Seq α
-  | _ :: xs => xs
-  | _ => []
-
-@[simp] theorem behead_cons : behead (x :: xs) = xs := by rfl
-@[simp] theorem cat_take_drop n0 (s : Seq α) : take n0 s ++ drop n0 s = s := by
-  sby elim: s n0=> // > /[swap][]
-theorem cat_cons : x :: s1 ++ s2 = x :: (s1 ++ s2) := by
-  sby elim: s1 x
-
-@[simp] def rcons : Seq α -> α -> Seq α
-  | x :: s', z => x :: rcons s' z
-  | [], z => [z]
-
-@[simp] def belast (x : α) : Seq α -> Seq α
-  | x' :: xs => x :: belast x' xs
   | [] => []
+  | _ :: xs => xs
 
-@[simp] def last (x0 : α) : Seq α -> α
-  | x' :: xs => last x' xs
-  | [] => x0
+theorem size_behead (s : Seq α) : size (behead s) = size s - 1 := by
+  sby scase: s
+
+-- Factories
+
+def ncons (n : Nat) (x : α) := iter n (List.cons x)
+def nseq (n : Nat) (x : α) : Seq α := ncons n x []
+
+@[simp] theorem nconsSn (n : Nat) (x : α) (s : Seq α) : ncons (n + 1) x s = x :: ncons n x s := by rfl
+
+-- NOTE: it seems `simpl` (`/=`) in Coq somehow uses something akin to `nconsSn`
+theorem size_ncons (n : Nat) (x : α) (s : Seq α) : size (ncons n x s) = n + size s := by
+  elim: n=>//=
+
+theorem size_nseq (n : Nat) (x : α) : size (nseq n x) = n := by
+  -- NOTE: the equivalent of `dsimp` runs first in Coq, so `/=` is not needed there
+  sby srw /= nseq size_ncons
+
+-- n-ary, dependently typed constructor
+
+def seqn_type (n : Nat) :=
+  match n with
+  | 0 => Seq α
+  | n' + 1 => α -> seqn_type n'
+
+-- Sequence catenation "cat"
+-- set_option trace.Meta.synthInstance true
+
+-- def cat (s1 s2 : Seq α) :=
+--   match s1 with
+--   | [] => s2
+--   | x :: s1' => x :: cat s1' s2
+
+theorem cat0s (s : Seq α) : [] ++ s = s := by sdone
+theorem cat1s (x : α) (s : Seq α) : [x] ++ s = x :: s := by sdone
+theorem cat_cons (x : α) (s1 s2 : Seq α) : (x :: s1) ++ s2 = x :: (s1 ++ s2) := by sdone
+
+theorem cat_nseq (n : Nat) (x : α) (s : Seq α) : nseq n x ++ s = ncons n x s := by
+  elim: n=>//
+  srw nseq
 
 
-theorem lastI : x :: s = rcons (belast x s) (last x s) := by
-  sby elim: s x
-theorem cat_rcons : rcons s1 x ++ s2 = s1 ++ x :: s2 := by
-  sby elim: s1 x
-theorem mask_cat : size m1 = size s1 → mask (m1 ++ m2) (s1 ++ s2) = mask m1 s1 ++ mask m2 s2 := by
-  sby elim: m1 s1=> [/== ? /size0nil->|/== [] ?? []]
+theorem nseqD (n1 n2 : Nat) (x : α) : nseq n1 x ++ nseq n2 x = nseq (n1 + n2) x := by
+  srw cat_nseq /= ?nseq ?ncons iterD
 
-theorem drop_nth (x0 : α) : n < size s → drop n s = nth x0 s n :: drop (n+1) s := by
-  sby elim: s n=> // x s /[swap][]//= ? /[swap] ? -> //; omega
+theorem cats0 (s : Seq α) : s ++ [] = s := by sdone
+theorem catA (s1 s2 s3 : Seq α) : (s1 ++ s2) ++ s3 = s1 ++ (s2 ++ s3) := by elim: s1=>//=
 
-theorem nth_index (s : Seq α) : x ∈ s → nth x0 s (index x s) = x := by
-  sby elim: s=> //== >; scase_if
+theorem size_cat (s1 s2 : Seq α) : size (s1 ++ s2) = size s1 + size s2 := by elim: s1=>//=
 
-theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by
-  sby elim: s=> //== >; scase_if=> //== ? <-; omega
+theorem cat_nilp (s1 s2 : Seq α) : nilp (s1 ++ s2) = (nilp s1 && nilp s2) := by elim: s1=>//=
 
-@[simp] theorem size_belast : size (belast x s) = size s := by
-  sby elim: s x
+-- last, belast, rcons, and last induction
 
--- count_uniq_mem: clear at intro
--- catCA_perm_ind: clear at revert
--- subseqP: clear at rewrite
+@[simp] def rcons (s : Seq α) (z : α) :=
+  match s with
+  | [] => [z]
+  | x :: s' => x :: rcons s' z
 
--- macro_rules
---   | `(ssrTriv| //) => `(tactic| omega)
+theorem rcons_cons (x : α) (s : Seq α) (z : α) : rcons (x :: s) z = x :: rcons s z := by sdone
 
-theorem subseqP (s1 s2 : Seq α) :
-  (subseq s1 s2) <-> (exists m, size m = size s2 /\ s1 = mask m s2) := by
-  elim: s2 s1=> [| y s2 IHs2] [|x s1]
-  { simp; exists [] }
-  { sby simp }
-  { sby simp; exists (nseq false (Nat.succ (size s2))) }
-  simp [IHs2]; constructor=> [] m [] sz_m def_s1
-  { sby exists ((x = y) :: m); simp [<-def_s1]; scase_if }
-  scase_if=> ne_xy; rotate_right
-  { scase: m def_s1 sz_m=> [|[]] //== }
-  generalize h : (index true m) = i at *
-  shave def_m_i : take i m = nseq false (size (take i m))
-  { simp [all_nthP true]=> j le; srw nth_take
-    { shave: ¬(true = nth true m j);
-      { apply before_find (_ = ·)
-        scase_if: le <;> srw index at h <;> omega }
-      generalize (nth true m j) = b; sby scase:b }
-    scase_if: le=> //== ? le
-    sby apply (Nat.lt_of_lt_of_le le) }
-  shave lt_i_m : i < size m
-  { false_or_by_contra; srw take_oversize // at def_m_i
-    sby srw def_m_i mask_false at def_s1 }
-  simp [-all_pred1P, lt_i_m] at def_m_i
-  exists (take i m ++ drop (i+1) m); constructor
-  { simp_all; omega }
-  move: {def_s1} (congrArg behead def_s1)=> /== -> {s1}
-  srw -[1](cat_take_drop i m) -(cat_take_drop i s2) def_m_i -cat_cons
-  shave sz_i_s2: size (take i s2) = i; simp; omega
-  srw lastI cat_rcons ?mask_cat ?size_belast ?sz_i_s2 //==
-  sby srw (drop_nth true) // -[1]h nth_index // -index_mem
+theorem cats1 (s : Seq α) (x : α) : s ++ [x] = rcons s x := by elim: s=>//=
+
+@[simp] def last (x : α) (s : Seq α) : α :=
+  match s with
+  | [] => x
+  | x' :: s' => last x' s'
+
+@[simp] def belast (x : α) (s : Seq α) : Seq α :=
+  match s with
+  | [] => []
+  | x' :: s' => x :: belast x' s'
+
+theorem lastI (x : α) (s : Seq α) : x :: s = rcons (belast x s) (last x s) := by
+  elim: s x => [|y s IHs] x //=
+
+theorem last_cons (x y : α) (s : Seq α) : last x (y :: s) = last y s := by sdone
+
+theorem size_rcons (s : Seq α) (x : α) : size (rcons s x) = size s + 1 := by elim: s=>//=
+
+theorem size_belast (x : α) (s : Seq α) : size (belast x s) = size s := by
+  elim: s x => [|y s IHs] x //=
+
+theorem last_cat (x : α) (s1 s2 : Seq α) : last x (s1 ++ s2) = last (last x s1) s2 := by elim: s1 x=>//=
+theorem last_rcons (x : α) (s : Seq α) (y : α) : last x (rcons s y) = y := by elim: s x=>//=
+theorem belast_cat (x : α) (s1 s2 : Seq α) : belast x (s1 ++ s2) = belast x s1 ++ belast (last x s1) s2 :=
+  by elim: s1 x=>//=
+
+theorem belast_rcons (x : α) (s : Seq α) (y : α) : belast x (rcons s y) = x :: s := by elim: s x=>//=
+
+theorem cat_rcons (x : α) (s1 s2 : Seq α) : rcons s1 x ++ s2 = s1 ++ x :: s2 := by elim: s1=>//=
+
 
 end seq
