@@ -39,7 +39,8 @@ structure stateVisit where
   idx : Nat := 1
   exps : Array Expr := #[]
 
-private def kpattern (e : Expr) (p : Expr) (occs : Occurrences := .all) : MetaM Expr := do
+namespace Revert
+protected def kpattern (e : Expr) (p : Expr) (occs : Occurrences := .all) : MetaM Expr := do
   let e ← instantiateMVars e
   if p.isFVar && occs == Occurrences.all then
     return e.abstract #[p] -- Easy case
@@ -80,11 +81,12 @@ private def kpattern (e : Expr) (p : Expr) (occs : Occurrences := .all) : MetaM 
     if e.exps.size = 0 then
       throwError "Pattern was not found"
     else return e.exps[0]!
+end Revert
 
 elab "scase_if" : tactic => newTactic do
   let t <- `(term| ite _ _ _)
   let t <- Term.elabTerm t none
-  let ifc <- kpattern (<-getMainTarget) t
+  let ifc <- Revert.kpattern (<-getMainTarget) t
   let t <- PrettyPrinter.delab ifc.getAppArgs[1]!
   let name <- fresh "H"
   run `(tactic| by_cases $name : $t)

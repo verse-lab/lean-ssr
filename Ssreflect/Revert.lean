@@ -35,50 +35,8 @@ def mkInitialTacticInfoR (stx : Syntax) : TacticM (TacticM Info) := do
 @[inline] def withTacticInfoContextR (stx : Syntax) (x : TacticM α) : TacticM α := do
   withInfoContext x (← mkInitialTacticInfoR stx)
 
-
-private def kpattern (e : Expr) (p : Expr) (occs : Occurrences := .all) : MetaM Expr := do
-  let e ← instantiateMVars e
-  if p.isFVar && occs == Occurrences.all then
-    return e.abstract #[p] -- Easy case
-  else
-    let pHeadIdx := p.toHeadIndex
-    let pNumArgs := p.headNumArgs
-    let rec visit (e : Expr) (offset : Nat) : StateRefT stateVisit MetaM Unit := do
-      let visitChildren : Unit → StateRefT stateVisit MetaM Unit := fun _ => do
-        match e with
-        | .app f a         => visit f offset; visit a offset
-        | .mdata _ b       => visit b offset
-        | .proj _ _ b      => visit b offset
-        | .letE _ t v b _  => visit t offset; visit v offset; visit b (offset+1)
-        | .lam _ d b _     => visit d offset; visit b (offset+1)
-        | .forallE _ d b _ => visit d offset; visit b (offset+1)
-        | _                => return ()
-      if e.hasLooseBVars then
-        visitChildren ()
-      else if e.toHeadIndex != pHeadIdx || e.headNumArgs != pNumArgs then
-        visitChildren ()
-      else
-        -- We save the metavariable context here,
-        -- so that it can be rolled back unless `occs.contains i`.
-        let mctx ← getMCtx
-        if (← isDefEq e p) then
-          let i := (← get).idx
-          modify $ fun st => { st with idx := i+1 }
-          if occs.contains i then
-            modify $ fun st => { st with exps := st.exps.push e }
-          else
-            -- Revert the metavariable context,
-            -- so that other matches are still possible.
-            setMCtx mctx
-            visitChildren ()
-        else
-          visitChildren ()
-    let (_, e) <- visit e 0 |>.run {}
-    if e.exps.size = 0 then
-      throwError "Pattern was not found"
-    else return e.exps[0]!
-
-private def kpatternType (e : Expr) (p : Expr) (occs : Occurrences := .all) : MetaM Expr := do
+namespace Revert
+protected def kpatternType (e : Expr) (p : Expr) (occs : Occurrences := .all) : MetaM Expr := do
   let e ← instantiateMVars e
   if p.isFVar && occs == Occurrences.all then
     return e.abstract #[p] -- Easy case
@@ -122,6 +80,7 @@ private def kpatternType (e : Expr) (p : Expr) (occs : Occurrences := .all) : Me
     if e.exps.size = 0 then
       throwError "Pattern was not found"
     else return e.exps[0]!
+end Revert
 
 elab_rules : tactic
   | `(ssrRevert|$i:ident) => do
@@ -140,9 +99,9 @@ elab_rules : tactic
       let goalType <- getMainTarget
       let prop <- Term.elabTerm (<- `(term| Prop)) none
       let t <- Term.elabTerm t prop
-      let t <- kpattern goalType t
+      let t <- Revert.kpattern goalType t
       let dt <- mkAppM `Decidable #[t]
-      let t <- kpatternType goalType dt
+      let t <- Revert.kpatternType goalType dt
       let ts <- PrettyPrinter.delab t
       run `(tactic| generalize $h : $ts = $x)
       run `(tactic| clear $h; revert $x)
