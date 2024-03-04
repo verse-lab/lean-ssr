@@ -197,7 +197,147 @@ where
           withReader ({ · with elaborator := evalFn.declName }) <| annotate stx <| evalFn.value stx
         catch ex => handleEx s failures ex (eval s evalFns)
 
+def _root_.Lean.EnvExtension.set [Inhabited σ] (ext : EnvExtension σ) (s : σ) : MetaM Unit := do
+  Lean.setEnv $ ext.setState (<- getEnv) s
 
+def _root_.Lean.EnvExtension.modify [Inhabited σ] (ext : EnvExtension σ) (s : σ -> σ) : MetaM Unit := do
+  Lean.modifyEnv (ext.modifyState · s)
+
+def _root_.Lean.EnvExtension.get [Inhabited σ] (ext : EnvExtension σ) : MetaM σ := do
+  return ext.getState (<- getEnv)
+
+-- structure stateVisit where
+--   idx : Nat := 1
+--   exps : Array Expr := #[]
+
+-- #check kabstract
+
+-- def kreplace (e : Expr) (p : Expr -> MetaM Bool) (pr : Expr -> Expr) (occs : Occurrences := .all) : MetaM Expr := do
+--   let e ← instantiateMVars e
+--   let rec visit (e : Expr) (offset : Nat) : StateRefT Nat MetaM Expr := do
+--     let visitChildren : Unit → StateRefT Nat MetaM Expr := fun _ => do
+--       match e with
+--       | .app f a         => return e.updateApp! (← visit f offset) (← visit a offset)
+--       | .mdata _ b       => return e.updateMData! (← visit b offset)
+--       | .proj _ _ b      => return e.updateProj! (← visit b offset)
+--       | .letE _ t v b _  => return e.updateLet! (← visit t offset) (← visit v offset) (← visit b (offset+1))
+--       | .lam _ d b _     => return e.updateLambdaE! (← visit d offset) (← visit b (offset+1))
+--       | .forallE _ d b _ => return e.updateForallE! (← visit d offset) (← visit b (offset+1))
+--       | e                => return e
+--       -- We save the metavariable context here,
+--       -- so that it can be rolled back unless `occs.contains i`.
+--     let mctx ← getMCtx
+--     if <- p e then
+--       let i ← get
+--       set (i+1)
+--       if occs.contains i then
+--         return pr e
+--       else
+--         -- Revert the metavariable context,
+--         -- so that other matches are still possible.
+--         setMCtx mctx
+--         visitChildren ()
+--     else
+--       visitChildren ()
+--   visit e 0 |>.run' 1
+
+-- inductive Dir where
+--   | P2B
+--   | B2P
+
+-- @[inline] abbrev PB : Dir -> Type
+--   | .P2B => Prop
+--   | .B2P => Bool
+
+-- @[inline] abbrev PB' : Dir -> Type
+--   | .P2B => Bool
+--   | .B2P => Prop
+
+-- @[simp] def equiv : (d : Dir) -> PB d -> PB' d -> Prop
+--   | .P2B, P, b => P <-> b
+--   | .B2P, b, P => P <-> b
+
+-- class ReflectD (d : Dir) (P : PB d) (B : outParam (PB' d)) where
+--   eqv : equiv d P B
+
+-- @[inline] abbrev mkPB : (d : Dir) -> (P : Prop) -> (b : Bool) -> PB d
+--   | .P2B, P, _ => P
+--   | .B2P, _, b => b
+
+-- @[inline] abbrev mkPB' : (d : Dir) -> (P : Prop) -> (b : Bool) -> PB' d
+--   | .B2P, P, _ => P
+--   | .P2B, _, b => b
+
+
+-- @[inline] abbrev Reflect d (P : Prop) (b : Bool) := ReflectD d (mkPB d P b) (mkPB' d P b)
+
+-- @[inline] abbrev Reflect.toProp (b : Bool) {P : Prop} [ReflectD .B2P b P] : Prop := P
+
+-- class Reflect (P : outParam Prop) (b : outParam Bool) where
+--   pb : ReflectD .P2B P b
+--   bp : ReflectD .B2P b P
+
+-- instance [Reflect P b] : ReflectD .P2B P b := by sorry
+-- instance [Reflect P b] : ReflectD .B2P b P := by sorry
+
+-- theorem toPropEq (eq : b1 = b2) [inst1:ReflectD .B2P b1 P1] [inst2:ReflectD .B2P b2 P2] : Reflect.toProp b1 = Reflect.toProp b2 := by
+--   simp [Reflect.toProp]
+--   cases inst1 <;> cases inst2 <;> simp_all
+
+-- def ReflectEven d (n : Nat) : Reflect d (even n) (evenb n) := by sorry
+
+-- #check Parser.Term.byTactic
+
+-- elab "reflect : " tp:term t:declVal : command => liftTermElabM <| do
+--   let tp <- elabTerm tp none
+--   let exp <- elabByTactic t tp
+
+-- reflect : forall n,  Reflect (even n) (evenb n) := by
+--   intro _
+
+
+-- instance  : forall n, ReflectD .P2B (even n) (evenb n) := ReflectEven .P2B
+-- instance  : forall n, ReflectD .B2P (evenb n) (even n) := ReflectEven .B2P
+-- instance ReflectTrue : Reflect d True true := by sorry
+-- instance ReflectFalse : Reflect d False false := by sorry
+-- instance ReflectAnd : [Reflect d P1 b1] -> [Reflect d P2 b2] -> Reflect d (P1 /\ P2) (b1 && b2) := by sorry
+
+-- #reduce Reflect.toProp (evenb 3)
+
+-- elab "#reflect" ib:ident : command => do
+--   liftTermElabM <| generatePropSimp ib.getId
+
+-- #reflect evenb
+
+
+-- @[inline_if_reduce, nospecialize] def reflect (P : Prop) {b : Bool} [Reflect P b] : Bool := b
+
+-- @[simp] theorem reflectE (P : Prop) {b : Bool} [Reflect P b] : b = reflect P := by rfl
+-- theorem reflectI (P : Prop) {b : Bool} [inst: Reflect P b] : P = b := by
+--   cases inst <;> simp_all
+
+-- instance (n : Nat) : Reflect (even n) (evenb n) := by
+--   sorry
+
+-- example : even (n + 2) := by simp
+
+-- #print_eqs even evenb
+
+-- #print evenb._eq_1
+
+
+
+
+
+  -- rw (config := { occs := .pos [2] }) [<-(@decide_eq_true_eq (even ..))]
+
+
+
+
+
+
+-- example P : even 0 /\ P -> False := by
+--   simp [even.zero]
 
 -- partial def iterateElab0 (elabOne : HashMap SyntaxNodeKind Tactic) (stx : Syntax) : TacticM Unit := do
 --   let cats := keys elabOne

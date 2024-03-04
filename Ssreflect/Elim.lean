@@ -7,7 +7,7 @@ open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 -- open Lean.Elab.Tactic.Conv.PatternMatchState
 
-elab "scase" : tactic => newTactic do
+elab "case" : tactic => newTactic do
     let hyps <- getLCtx
     let name <- fresh "H"
     run `(tactic| intro $name:ident)
@@ -19,6 +19,8 @@ elab "scase" : tactic => newTactic do
           let hyp := hyp.get!
           unless hyps.findFromUserName? hyp.userName |> Option.isSome do
             tryGoal $ run `(tactic| revert $(mkIdent hyp.userName):ident)
+
+#check Lean.Parser.Term.byTacticic
 
 elab "elim" : tactic => newTactic do
     let hyps <- getLCtx

@@ -61,8 +61,14 @@ partial def macroCfg (stx : TSyntax `srwPos) : MacroM $ TSyntax `term :=
   | _ => Macro.throwErrorAt stx "Unsupported syntax for 'srw' positions"
 
 
+abbrev LocationExtState := Option (TSyntax `Lean.Parser.Tactic.location)
+
+initialize locExt : EnvExtension LocationExtState ←
+  registerEnvExtension (pure none)
+
 elab_rules : tactic
-  | `(srwRuleLoc| $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm $l:location ?) =>
+  | `(srwRule| $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm) => do
+      let l <- locExt.get
       try do
         let t' := match t with
           | `(srwTerm| ($t:term)) => some t
@@ -92,22 +98,9 @@ elab_rules : tactic
         | none => evalTactic r
       catch | ex => throwErrorAt t ex.toMessageData
 
-def chipOfLoc (stx : Syntax) : Syntax :=
-  if stx.isOfKind `srwRuleLoc then
-    mkNode `swrRule $ stx[0].getArgs.filter fun arg => ¬ arg.isOfKind `location
-  else stx
-
-elab "srw" rs:srwRules l:(location)? : tactic =>
-  match rs with
-  | `(srwRules| $[$ts] *) => do
-    let ts <- ts.mapM fun x => do
-      if x.raw.isOfKind `srwRule then
-        let y <- `(srwRuleLoc| $(⟨x.raw.setKind `srwRule⟩):srwRule $l:location ?)
-        return y.raw
-      else return x.raw
-    elabTactic (annotate := (withTacticInfoContext <| chipOfLoc ·)) $ mkNullNode ts
-  | _ => throwError ""
-
+elab "srw" rs:srwRules l:(location)? : tactic => do
+  locExt.set l
+  elabTactic rs.raw[0]
 
 -- #check Syntax
 -- example (H : (True /\ False) /\ (True /\ False) = False) : True -> (True /\ False) /\ (True /\ False) = False := by
