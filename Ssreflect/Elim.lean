@@ -2,6 +2,7 @@ import Lean
 import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
+import Lean.Parser.Term
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
@@ -20,7 +21,6 @@ elab "case" : tactic => newTactic do
           unless hyps.findFromUserName? hyp.userName |> Option.isSome do
             tryGoal $ run `(tactic| revert $(mkIdent hyp.userName):ident)
 
-#check Lean.Parser.Term.byTacticic
 
 elab "elim" : tactic => newTactic do
     let hyps <- getLCtx
