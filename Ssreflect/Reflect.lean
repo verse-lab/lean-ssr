@@ -85,14 +85,13 @@ instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 /\ P2) (
   by_cases h : P1 <;> cases i1 <;> simp_all
 
 
-
 def generatePropSimp (np nb : Expr) : TermElabM Unit := do
   let (some np, some nb) := (np.constName?, nb.constName?) | throwError s!"Not a constant"
   let some eqs <- getEqnsFor? (nonRec := true) nb | throwError s!"No reduction rules for {nb}"
   let rs <- getReducibilityStatus nb
   setReducibilityStatus nb .irreducible
   let mut names : Array Name := #[]
-  for eq in eqs, i in [0,eqs.size] do
+  for eq in eqs, i in [0:eqs.size] do
     let env <- getEnv
     let some c := env.find? eq | throwError s!"No reduction rule with name {eq}"
     let cT := c.type
