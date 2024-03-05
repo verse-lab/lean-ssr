@@ -43,8 +43,6 @@ def reflect_of_equiv : (b = true <-> P) -> Reflect P b := by
 def equiv_of_reflect : Reflect P b -> (b = true <-> P) := by
   intro r; cases r <;> simp_all
 
--- instance reflect_of_decide [Decidable P] : Reflect P (decide P) := by
-
 instance [Reflect P b] : Decidable P := by
   eapply decidable_of_bool
   apply equiv_of_reflect
@@ -80,13 +78,19 @@ instance : Reflect True true := by apply Reflect.T <;> simp_all
 @[reflect -1]
 instance ReflectFalse : Reflect False false := by apply Reflect.F <;> simp_all
 @[reflect]
-instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 /\ P2) (b1 && b2) := by
+instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∧ P2) (b1 && b2) := by
   intros i1 i2; apply reflect_of_decide
   by_cases h : P1 <;> cases i1 <;> simp_all
-
+@[reflect]
+instance ReflectOr : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∨ P2) (b1 || b2) := by
+  intros i1 i2; apply reflect_of_decide
+  by_cases h : P1 <;> cases i1 <;> simp_all
+@[reflect]
+instance ReflectDecide : [Decidable P] -> Reflect P (decide P) := by
+  intros; apply reflect_of_decide; trivial
 
 def generatePropSimp (np nb : Expr) : TermElabM Unit := do
-  let (some np, some nb) := (np.constName?, nb.constName?) | throwError s!"Not a constant"
+  let (some np, some nb) := (np.getAppFn.constName?, nb.getAppFn.constName?) | throwError s!"Either {np} or {nb} is not a function application"
   let some eqs <- getEqnsFor? (nonRec := true) nb | throwError s!"No reduction rules for {nb}"
   let rs <- getReducibilityStatus nb
   setReducibilityStatus nb .irreducible
@@ -133,12 +137,12 @@ def generatePropSimp (np nb : Expr) : TermElabM Unit := do
     modifyEnv (fun env => simpExtension.modifyState env (·.registerDeclToUnfoldThms np names))
     setReducibilityStatus nb rs
 
-elab "#reflect" ip:ident ib:ident : command => liftTermElabM <| do
+elab "#reflect" ip:term:max ib:term : command => liftTermElabM <| do
   let ip <- Term.elabTerm ip none
   let ib <- Term.elabTerm ib none
   generatePropSimp ip ib
 
--- set_option trace.reflect true
+set_option trace.reflect true
 
 #reflect even evenb
 
