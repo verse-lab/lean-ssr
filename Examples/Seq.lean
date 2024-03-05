@@ -165,24 +165,6 @@ theorem last_ind (P : Seq α → Prop) :
 
 theorem nth0 [Inhabited α] (s : Seq α) : nth s 0 = head s := by elim: s=>//=
 
--- <= is Defined as a inductive predicate on ℕ. But we want to behave as `leb` defined below
--- This `leb` defintion exactlu follows the one defined in mathcomp/ssrnat.v
--- In particula we want `n+1 <= m+1` to be always simplified to `n <= m`
--- To achive such behaviour we simply `#refelct` two Definitions
-@[simp] def leb : Nat -> Nat -> Bool
-  | n+1, m+1 => leb n m
-  | 0, _ => true
-  | _, _ => false
-
-
-@[reflect]
-instance (n m : Nat) : Reflect (n <= m) (leb n m) := by
-  apply reflect_of_equiv
-  elim: n m=> //== ?/[swap][]//=?->
-  omega
-
-#reflect Nat.le leb
-
 -- example (n m : Nat) : (Nat.succ n) <= (Nat.succ m) := by
 --   simp
 

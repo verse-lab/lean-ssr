@@ -10,6 +10,25 @@ def eqn (m n : Nat) :=
   | Nat.succ m, Nat.succ n => eqn m n
   | _, _ => false
 
+-- <= is Defined as a inductive predicate on ℕ. But we want to behave as `leb` defined below
+-- This `leb` defintion exactly follows the one defined in mathcomp/ssrnat.v
+-- In particula we want `n+1 <= m+1` to be always simplified to `n <= m`
+-- To achive such behaviour we simply `#reflect` two Definitions
+@[simp] def leb : Nat -> Nat -> Bool
+  | n+1, m+1 => leb n m
+  | 0, _ => true
+  | _, _ => false
+
+@[reflect]
+instance (n m : Nat) : Reflect (n <= m) (leb n m) := by
+  apply reflect_of_equiv
+  elim: n m=> //== ?/[swap][]//=?->
+  omega
+
+set_option trace.reflect true
+#reflect Nat.le leb
+#check eq_.Nat.le.«0»
+
 @[simp] theorem addSn (m n : Nat) : (Nat.succ m + n) = Nat.succ (m + n) := by omega
 
 @[simp] def iter (n : Nat) (f : α → α) (x : α) : α :=
