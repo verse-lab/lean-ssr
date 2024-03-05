@@ -206,6 +206,9 @@ def _root_.Lean.EnvExtension.modify [Inhabited σ] (ext : EnvExtension σ) (s : 
 def _root_.Lean.EnvExtension.get [Inhabited σ] (ext : EnvExtension σ) : MetaM σ := do
   return ext.getState (<- getEnv)
 
+initialize
+  registerTraceClass `reflect
+
 -- structure stateVisit where
 --   idx : Nat := 1
 --   exps : Array Expr := #[]

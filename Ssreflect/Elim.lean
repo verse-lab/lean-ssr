@@ -2,12 +2,13 @@ import Lean
 import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
+import Lean.Parser.Term
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 -- open Lean.Elab.Tactic.Conv.PatternMatchState
 
-elab "case" : tactic => newTactic do
+elab "scase" : tactic => newTactic do
     let hyps <- getLCtx
     let name <- fresh "H"
     run `(tactic| intro $name:ident)
@@ -20,7 +21,6 @@ elab "case" : tactic => newTactic do
           unless hyps.findFromUserName? hyp.userName |> Option.isSome do
             tryGoal $ run `(tactic| revert $(mkIdent hyp.userName):ident)
 
-#check Lean.Parser.Term.byTacticic
 
 elab "elim" : tactic => newTactic do
     let hyps <- getLCtx
@@ -39,7 +39,8 @@ structure stateVisit where
   idx : Nat := 1
   exps : Array Expr := #[]
 
-private def kpattern (e : Expr) (p : Expr) (occs : Occurrences := .all) : MetaM Expr := do
+namespace Revert
+protected def kpattern (e : Expr) (p : Expr) (occs : Occurrences := .all) : MetaM Expr := do
   let e ← instantiateMVars e
   if p.isFVar && occs == Occurrences.all then
     return e.abstract #[p] -- Easy case
@@ -80,11 +81,12 @@ private def kpattern (e : Expr) (p : Expr) (occs : Occurrences := .all) : MetaM 
     if e.exps.size = 0 then
       throwError "Pattern was not found"
     else return e.exps[0]!
+end Revert
 
 elab "scase_if" : tactic => newTactic do
   let t <- `(term| ite _ _ _)
   let t <- Term.elabTerm t none
-  let ifc <- kpattern (<-getMainTarget) t
+  let ifc <- Revert.kpattern (<-getMainTarget) t
   let t <- PrettyPrinter.delab ifc.getAppArgs[1]!
   let name <- fresh "H"
   run `(tactic| by_cases $name : $t)

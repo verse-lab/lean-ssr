@@ -67,16 +67,22 @@ elab_rules : tactic
       evalTactic $ <- `(tactic| clear $name)
 
     -- rewrites
-    | `(ssrIntro| ->) => do
+    | `(ssrIntro| ->%$arr) => do
+      let name ← fresh "H"
+      let s ← saveState
+      try
+        run `(tactic| intros $name);
+        run `(tactic| rw [$name:ident])
+      catch | ex => do restoreState s; throwErrorAt arr ex.toMessageData
+      run `(tactic| try clear $name)
+    | `(ssrIntro| <-%$arr) => newTactic do
       let name ← fresh "H"
       run `(tactic| intros $name)
-      run `(tactic| rw [$name:ident])
-      run `(tactic| try clear $name)
-    | `(ssrIntro| <-) => newTactic do
-      let name ← fresh "H"
-      run `(tactic| intros $name)
-      run `(tactic| rw [<-$name:ident])
-      run `(tactic| try clear $name)
+      let s ← saveState
+      try
+        run `(tactic| intros $name);
+        run `(tactic| rw [<-$name:ident])
+      catch | ex => do restoreState s; throwErrorAt arr ex.toMessageData
 
     -- -- switches
     | `(ssrIntro|/$t:ident) => do

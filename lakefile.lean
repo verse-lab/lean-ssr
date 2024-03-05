@@ -14,3 +14,4 @@ require std from git "https://github.com/leanprover/std4" @ "main"
 @[default_target]
 lean_lib Ssreflect where
   -- add any library configuration options here
+lean_lib Examples where

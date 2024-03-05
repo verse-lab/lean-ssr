@@ -2,6 +2,8 @@ import Ssreflect.Lang
 import Std.Data.List
 import Std.Tactic.Omega
 import Examples.Nat
+-- import Lean.Elab.Tactic
+-- import Lean
 
 notation "Seq" => List
 
@@ -76,7 +78,7 @@ theorem cat_cons (x : α) (s1 s2 : Seq α) : (x :: s1) ++ s2 = x :: (s1 ++ s2) :
 
 theorem cat_nseq (n : Nat) (x : α) (s : Seq α) : nseq n x ++ s = ncons n x s := by
   elim: n=>//
-  srw nseq
+  srw nseq//
 
 
 theorem nseqD (n1 n2 : Nat) (x : α) : nseq n1 x ++ nseq n2 x = nseq (n1 + n2) x := by
@@ -136,6 +138,7 @@ inductive last_spec : Seq α → Prop where
   | last_rcons (s : Seq α) (x : α)  : last_spec (rcons s x)
 
 theorem lastP (s : Seq α) : last_spec s := by
+<<<<<<< HEAD
   scase: s => [|x s]
   { left }
   { srw lastI; right }
@@ -147,5 +150,74 @@ theorem last_ind (P : Seq α → Prop) :
   elim: s=>[|x s2 IHs] s1 Hs1
   { sby srw cats0 }
   { sby srw -cat_rcons; apply IHs; apply Hlast }
+=======
+  scase: s => [|x s]; { left }; srw lastI; right
+
+theorem last_ind (P : Seq α → Prop) :
+  P [] → (∀ s x, P s → P (rcons s x)) → ∀ s, P s := by
+  move=> Hnil Hlast s <;> srw -(cat0s s)
+  elim: s ([]) Hnil=> [|x s2 IHs] s1 Hs1
+  { sby srw cats0 }
+  { sby srw -cat_rcons; apply IHs; apply Hlast }
+
+-- Sequence indexing
+
+@[simp] def nth [Inhabited α] (s : Seq α) (n : Nat) : α :=
+  match s with
+  | [] => default
+  | x :: s' => match n with
+    | 0 => x
+    | n' + 1 => nth s' n'
+
+@[simp] def set_nth [Inhabited α] (s : Seq α) (n : Nat) (y : α) : Seq α :=
+  match s with
+  | [] => ncons n default [y]
+  | x :: s' => match n with
+    | 0 => y :: s'
+    | n' + 1 => x :: set_nth s' n' y
+
+theorem nth0 [Inhabited α] (s : Seq α) : nth s 0 = head s := by elim: s=>//=
+
+-- example (n m : Nat) : (Nat.succ n) <= (Nat.succ m) := by
+--   simp
+
+theorem nth_default [Inhabited α] (s : Seq α) (n : Nat) : size s <= n -> nth s n = default := by
+  -- NOTE: this solves the goal in Coq; there's probably some lemmas we're missing
+  elim: s n=>[|x s IHs] [] //=
+  -- { intro n Hle; apply IHs; omega }
+
+-- requires some facts/reasoning principles about `<=`
+theorem if_nth [Inhabited α] (s : Seq α) (b : Bool) (n : Nat) :
+  b || (size s <= n) → (if b then nth s n else default) = nth s n := by sorry
+
+-- We might not want to talk about Booleans at all. Consider the following formulation
+theorem if_nthProp [Inhabited α] [Decidable P] (s : Seq α) (n : Nat) :
+  P ∨ (size s <= n) → (if P then nth s n else default) = nth s n := by
+  sby scase_if=> //== ? /nth_default
+
+
+theorem nth_nil [Inhabited α] (n : Nat) : nth ([] : Seq α) n = default := by sdone
+
+theorem nth_seq1 [Inhabited α] (n : Nat) (x : α) :
+  nth [x] n = if n == 0 then x else default := by elim: n=>//=
+
+-- Again, screw Bools
+theorem nth_seq1Prop [Inhabited α] (n : Nat) (x : α) :
+  nth [x] n = if n = 0 then x else default := by elim: n=>//=
+
+
+theorem last_nth [Inhabited α] (x : α) (s : Seq α) : last x s = nth (x :: s) (size s) := by
+  elim: s x => [|y s IHs] x //=
+
+theorem nth_last [Inhabited α] (s : Seq α) : nth s (size s - 1) = last default s := by
+  sby scase: s => //= x s; srw last_nth
+
+theorem nth_behead [Inhabited α] (s : Seq α) (n : Nat) : nth (behead s) n = nth s (n + 1) := by
+  elim: s n=>[|x s _] [] //=
+
+theorem nth_cat [Inhabited α] (s1 s2 : Seq α) (n : Nat) :
+  nth (s1 ++ s2) n = if n < size s1 then nth s1 n else nth s2 (n - size s1) := by
+  elim: s1 n=>[|x s1 IHs] [] //==
+>>>>>>> master
 
 end seq

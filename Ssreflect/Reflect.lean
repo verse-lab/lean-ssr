@@ -2,6 +2,7 @@ import Lean
 import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
+import Std.Tactic.Omega
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
@@ -10,7 +11,7 @@ open Lean Elab Command Term Meta Tactic
 @[simp] def evenb : Nat -> Bool
   | 0 => true
   | 1 => false
-  | n +2=> evenb n
+  | n + 2=> evenb n
 
 inductive even : Nat -> Prop where
   | zero : even 0
@@ -54,12 +55,15 @@ def reflect_of_decide [inst1: Decidable P] : b = decide P -> Reflect P b := by
   cases inst1 <;> simp_all
 
 macro "reflect" n:num : attr =>
-  `(attr| default_instance 1000+$n)
+  `(attr| default_instance 1001+$n)
+
+macro "reflect" "-" n:num : attr =>
+  `(attr| default_instance 1001-$n)
 
 macro "reflect" : attr =>
-  `(attr| default_instance 1000)
+  `(attr| default_instance 1001)
 
-@[reflect 1]
+@[reflect]
 instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
   match n with
   | 0 => by simp <;> repeat constructor
@@ -71,25 +75,28 @@ instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
     apply Reflect.F <;> try assumption
     intro n; cases n; contradiction
 
-@[reflect]
+@[reflect -1]
 instance : Reflect True true := by apply Reflect.T <;> simp_all
-@[reflect]
+@[reflect -1]
 instance ReflectFalse : Reflect False false := by apply Reflect.F <;> simp_all
-@[reflect 1]
+@[reflect]
 instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 /\ P2) (b1 && b2) := by
   intros i1 i2; apply reflect_of_decide
   by_cases h : P1 <;> cases i1 <;> simp_all
 
 
--- #reduce Reflect.toProp (evenb 0)
-
-def generatePropSimp (nb : Name) : TermElabM Unit := do
-  let some eqs <- getEqnsFor? nb | throwError s!"No reduction rules for {nb}"
-  for eq in eqs do
+def generatePropSimp (np nb : Expr) : TermElabM Unit := do
+  let (some np, some nb) := (np.constName?, nb.constName?) | throwError s!"Not a constant"
+  let some eqs <- getEqnsFor? (nonRec := true) nb | throwError s!"No reduction rules for {nb}"
+  let rs <- getReducibilityStatus nb
+  setReducibilityStatus nb .irreducible
+  let mut names : Array Name := #[]
+  for eq in eqs, i in [0:eqs.size] do
     let env <- getEnv
     let some c := env.find? eq | throwError s!"No reduction rule with name {eq}"
     let cT := c.type
-    forallTelescopeReducing cT fun args cT => do
+    trace[reflect] c.name ++ " : " ++ c.type
+    let name <- forallTelescopeReducing cT fun args cT => do
       let rhsb := cT.getAppArgs[1]!
       let lhsb := cT.getAppArgs[2]!
 
@@ -99,9 +106,11 @@ def generatePropSimp (nb : Name) : TermElabM Unit := do
 
       let lhsbs <- PrettyPrinter.delab lhsb
       let t <- `(term| Reflect.toProp $lhsbs)
-      let lhs <- elabTermAndSynthesize t none
-      let rhs <- withTransparency (mode := TransparencyMode.all) <| reduce rhs (skipProofs := false) (skipTypes := false)
-      let lhs <- withTransparency (mode := TransparencyMode.all) <| reduce lhs (skipProofs := false) (skipTypes := false)
+      let lhs <- withTransparency (mode := TransparencyMode.reducible) <| elabTermAndSynthesize t none
+      -- IO.println s! "{rhs}"
+      -- dbg_trace "lhs:{lhs}"
+      let rhs <- withTransparency (mode := TransparencyMode.reducible) <| reduce rhs (skipProofs := false) (skipTypes := false)
+      let lhs <- withTransparency (mode := TransparencyMode.reducible) <| reduce lhs (skipProofs := false) (skipTypes := false)
       let type <- mkForallFVars args $ <- mkEq rhs lhs
       let value <- lambdaTelescope c.value! fun args _ => do
         let thm <- mkAppOptM c.name (args.map Option.some)
@@ -111,20 +120,66 @@ def generatePropSimp (nb : Name) : TermElabM Unit := do
         let body <- elabTermAndSynthesize t none
 
         mkLambdaFVars args body
-      let name := c.name ++ "_Prop"
+      let name := s! "eq_" ++ np ++ s!"{i}"
       addDecl <| Declaration.thmDecl {
         name, type, value
         levelParams := c.levelParams
       }
-      let env <- getEnv
-      let s := simpExtension.getState env
-      let s <- s.addConst name
-      modifyEnv (fun env => simpExtension.modifyState env (fun _ => s))
+      trace[reflect] name ++ " : " ++ type
+      -- TODO: configure if the simp theorem is local or global
+      addSimpTheorem simpExtension name (post := true) (inv := false) AttributeKind.global (eval_prio default)
+      return name
+    names := names.push name
+    modifyEnv (fun env => simpExtension.modifyState env (·.registerDeclToUnfoldThms np names))
+    setReducibilityStatus nb rs
 
-elab "#reflect" ib:ident : command => do
-  liftTermElabM <| generatePropSimp ib.getId
+elab "#reflect" ip:ident ib:ident : command => liftTermElabM <| do
+  let ip <- Term.elabTerm ip none
+  let ib <- Term.elabTerm ib none
+  generatePropSimp ip ib
 
-#reflect evenb
+-- set_option trace.reflect true
 
--- example (n : Nat) : even 0 /\ (¬ even 1) /\ even (n +2) := by
+#reflect even evenb
+
+-- def leb' : Nat -> Nat -> Bool
+--   | n+1, m+1 => leb' n m
+--   | 0, _ => true
+--   | _, _ => false
+
+-- def leb : Nat -> Nat -> Bool
+--   | n + 1, m + 1 => leb n m
+--   | 0, _ => true
+--   | _, _ => false
+
+-- @[reflect]
+-- instance lebP (n m : Nat) : Reflect (n <= m) (leb n m) := by
+--   sorry
+-- #reflect Nat.le leb
+
+-- def ltb (n m : Nat) := leb (n + 1) m
+
+-- @[reflect]
+-- instance (n m : Nat) : Reflect (n < m) (ltb n m) := by
+--   sorry
+
+-- #reflect Nat.lt ltb
+
+-- example (n : Nat) : even 0 /\ even 1 /\ even (n + 2) := by
+--   simp
+
+-- @[simp] def leb' : Nat -> Nat -> Bool
+--   | n+1, m+1 => leb' n m
+--   | 0, _ => true
+--   | _, _ => false
+
+-- example n : leb' (.succ n) (.succ n) := by dsimp; sorry
+
+-- @[reflect 2]
+-- instance (n m : Nat) : Reflect (LE.le n m) (leb' n m) := by sorry
+-- #reflect Nat.le leb'
+
+-- set_option pp.raw true
+
+-- example (n m : Nat) : (Nat.succ n) <= (Nat.succ m) := by
 --   simp
