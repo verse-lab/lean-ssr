@@ -173,25 +173,24 @@ theorem nth_default [Inhabited α] (s : Seq α) (n : Nat) : size s <= n -> nth s
   elim: s n=>[|x s IHs] [] //=
   -- { intro n Hle; apply IHs; omega }
 
--- requires some facts/reasoning principles about `<=`
-theorem if_nth [Inhabited α] (s : Seq α) (b : Bool) (n : Nat) :
-  b || (size s <= n) → (if b then nth s n else default) = nth s n := by sorry
-
 -- We might not want to talk about Booleans at all. Consider the following formulation
 theorem if_nthProp [Inhabited α] [Decidable P] (s : Seq α) (n : Nat) :
   P ∨ (size s <= n) → (if P then nth s n else default) = nth s n := by
   sby scase_if=> //== ? /nth_default
 
+theorem if_nth [Inhabited α] (s : Seq α) (b : Bool) (n : Nat) :
+  b || (size s <= n) → (if b then nth s n else default) = nth s n := by
+  move=> H; srw if_nthProp
+  scase: b H=>//=
 
 theorem nth_nil [Inhabited α] (n : Nat) : nth ([] : Seq α) n = default := by sdone
 
 theorem nth_seq1 [Inhabited α] (n : Nat) (x : α) :
-  nth [x] n = if n == 0 then x else default := by elim: n=>//=
+  nth [x] n = if n = 0 then x else default := by elim: n=>//=
 
 -- Again, screw Bools
 theorem nth_seq1Prop [Inhabited α] (n : Nat) (x : α) :
   nth [x] n = if n = 0 then x else default := by elim: n=>//=
-
 
 theorem last_nth [Inhabited α] (x : α) (s : Seq α) : last x s = nth (x :: s) (size s) := by
   elim: s x => [|y s IHs] x //=
@@ -205,5 +204,17 @@ theorem nth_behead [Inhabited α] (s : Seq α) (n : Nat) : nth (behead s) n = nt
 theorem nth_cat [Inhabited α] (s1 s2 : Seq α) (n : Nat) :
   nth (s1 ++ s2) n = if n < size s1 then nth s1 n else nth s2 (n - size s1) := by
   elim: s1 n=>[|x s1 IHs] [] //==
+
+theorem nth_rcons [Inhabited α] (s : Seq α) (x) (n : Nat) :
+  nth (rcons s x) n =
+    if n < size s then nth s n else if n = size s then x else default := by
+  elim: s n=>[|y s IHs] [] //==
+
+-- needs comparison predicates
+theorem nth_rcons_default [Inhabited α] (s : Seq α) (i : Nat) :
+  nth (rcons s default) i = nth s i := by
+  srw nth_rcons; repeat' scase_if <;> try omega
+  { sby move=> _ _; srw nth_default }
+  { move=> ? ?; srw nth_default; omega }
 
 end seq
