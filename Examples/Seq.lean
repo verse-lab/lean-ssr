@@ -168,6 +168,8 @@ theorem nth0 [Inhabited α] (s : Seq α) : nth s 0 = head s := by elim: s=>//=
 -- example (n m : Nat) : (Nat.succ n) <= (Nat.succ m) := by
 --   simp
 
+-- example (m n : Nat) : (Nat.succ m + n) = Nat.succ (m + n) := by simp?
+
 theorem nth_default [Inhabited α] (s : Seq α) (n : Nat) : size s <= n -> nth s n = default := by
   -- NOTE: this solves the goal in Coq; there's probably some lemmas we're missing
   elim: s n=>[|x s IHs] [] //=
