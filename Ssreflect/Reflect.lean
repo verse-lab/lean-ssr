@@ -127,10 +127,8 @@ def generatePropSimp (np nb : Expr) : TermElabM Unit := do
         levelParams := c.levelParams
       }
       trace[reflect] name ++ " : " ++ type
-      let env <- getEnv
-      let s := simpExtension.getState env
-      let s <- s.addConst name
-      modifyEnv (fun env => simpExtension.modifyState env (fun _ => s))
+      -- TODO: configure if the simp theorem is local or global
+      addSimpTheorem simpExtension name (post := true) (inv := false) AttributeKind.global (eval_prio default)
       return name
     names := names.push name
     modifyEnv (fun env => simpExtension.modifyState env (·.registerDeclToUnfoldThms np names))
