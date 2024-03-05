@@ -9,10 +9,11 @@ import Std.Tactic.Replace
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 
-declare_syntax_cat ssrRevert
+declare_syntax_cat ssrRevert (behavior := symbol)
 declare_syntax_cat ssrReverts
 -- intros
 syntax "(" term ")" : ssrRevert
+-- syntax term : ssrRevert
 syntax "[" term "]" : ssrRevert
 syntax ident : ssrRevert
 syntax (name:= ssrReverts) (ppSpace colGt (ssrRevert <|> ssrBasic))* : ssrReverts
@@ -85,15 +86,16 @@ end Revert
 elab_rules : tactic
   | `(ssrRevert|$i:ident) => do
       run  `(tactic| revert $i:term)
-  | `(ssrRevert|($t:term)) => do
+  | `(ssrRevert|($ts:term)) => do
+      let t <- Term.elabTerm ts none
+      let t <- Revert.kpattern (<- getMainTarget) t
+      if t.hasExprMVar then
+        throwErrorAt ts "Term is not generalized enough"
+      let x <- fresh "x"
       let h <- fresh "H"
-      let goal <- getMainGoal
-      let goalTag <- goal.getTag
-      let (trm, []) <- Tactic.elabTermWithHoles (allowNaturalHoles := true) t none goalTag
-        | throwErrorAt t "Cannont infer implicit parameters of {t}"
-      let goal <- goal.assert h.getId (<- inferType trm) trm
-      setGoals $ goal :: (<- getUnsolvedGoals)
-  | `(ssrRevert|[$t:term]) => do
+      run `(tactic| generalize $h : $ts = $x)
+      run `(tactic| clear $h; revert $x)
+  | `(ssrRevert| [ $t:term ]) => do
       let x <- fresh "x"
       let h <- fresh "H"
       let goalType <- getMainTarget
@@ -120,6 +122,5 @@ elab t:tactic ":" is:ssrReverts : tactic => do
 @[simp↓ high] theorem iteIsTrue [Decidable p] (t e : α) (h : p) : (@ite _ _ (Decidable.isTrue h) t e) = t := by rfl
 @[simp↓ high] theorem iteIsFalse [Decidable p] (t e : α) (h : ¬ p) : (@ite _ _ (Decidable.isFalse h) t e) = e := by rfl
 
--- example (x y : Nat) : if x = y then True else false := by
---    scase: x y
---   simp
+-- example (x y : List Nat) : if [] = y then True else false := by
+--    skip: (True)

@@ -142,9 +142,8 @@ theorem lastP (s : Seq α) : last_spec s := by
 
 theorem last_ind (P : Seq α → Prop) :
   P [] → (∀ s x, P s → P (rcons s x)) → ∀ s, P s := by
-  move=> Hnil Hlast s <;> srw -(cat0s s);
-  revert Hnil; generalize [] = s1; revert s1
-  elim: s=>[|x s2 IHs] s1 Hs1
+  move=> Hnil Hlast s <;> srw -(cat0s s)
+  elim: s ([]) Hnil=> [|x s2 IHs] s1 Hs1
   { sby srw cats0 }
   { sby srw -cat_rcons; apply IHs; apply Hlast }
 
