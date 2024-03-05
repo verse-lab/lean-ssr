@@ -217,4 +217,61 @@ theorem nth_rcons_default [Inhabited α] (s : Seq α) (i : Nat) :
   { sby move=> _ _; srw nth_default }
   { move=> ? ?; srw nth_default; omega }
 
+section seq_find
+variable (a : α → Prop) [DecidablePred a]
+
+@[simp] def find (s : Seq α) :=
+  match s with
+  | [] => 0
+  | x :: s' => if a x then 0 else (find s') + 1
+
+@[simp] def filter (s : Seq α) :=
+  match s with
+  | [] => []
+  | x :: s' => if a x then x :: filter s' else filter s'
+
+@[simp] def count (s : Seq α) :=
+  match s with
+  | [] => 0
+  | x :: s' => nat_of_bool (a x) + count s'
+
+def has (s : Seq α) : Prop := ∃ (x : α), x ∈ s ∧ a x
+
+@[simp] def hasb (s : Seq α) :=
+  match s with
+  | [] => false
+  | x :: s' => a x || hasb s'
+
+@[reflect]
+instance hasP (s : Seq α) : Reflect (has a s) (hasb a s) := by
+  apply reflect_of_equiv
+  elim: s=>//== => [[]//= | x s' ->]; constructor
+  {
+    scase=>h
+    { exists x; sdone }
+    { scase: h=>e h; exists e; sdone }
+  }
+  { scase=>e //== [-> //= | ?? /[tac (right; exists e)]] }
+#reflect has hasb
+
+@[simp] def allb (s : Seq α) :=
+  match s with
+  | [] => true
+  | x :: s' => a x && allb s'
+
+def all (s : Seq α) : Prop := ∀ (x : α), x ∈ s → a x
+
+-- TODO: add lemmas in SeqFind
+
+end seq_find
+
+section perm_seq
+
+def count_mem (x : α) := count (fun y => x == y)
+
+def perm_eq (s1 s2 : Seq α) :=
+  all (fun x => count_mem x s1 == count_mem x s2) (s1 ++ s2)
+
+end perm_seq
+
 end seq

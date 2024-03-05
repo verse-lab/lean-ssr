@@ -47,4 +47,6 @@ theorem iterS (n : Nat) (f : α → α) (x : α) : iter (n + 1) f x = f (iter n 
 theorem iterD (n m : Nat) (f : α → α) (x : α) : iter (n + m) f x = iter n f (iter m f x) := by
   elim: n => //=
 
+def nat_of_bool (b : Bool) := if b then 1 else 0
+
 end nat
