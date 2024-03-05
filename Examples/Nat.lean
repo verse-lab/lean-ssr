@@ -4,10 +4,10 @@ import Std.Tactic.Omega
 section nat
 variable {α : Type}
 
-def eqn (m n : Nat) :=
-  match m, n with
-  | Nat.zero, Nat.zero => true
-  | Nat.succ m, Nat.succ n => eqn m n
+@[simp] def eqn (n m : Nat) :=
+  match n, m with
+  | 0, 0 => true
+  | n + 1, m + 1 => eqn n m
   | _, _ => false
 
 -- <= is Defined as a inductive predicate on ℕ. But we want to behave as `leb` defined below
@@ -15,19 +15,26 @@ def eqn (m n : Nat) :=
 -- In particula we want `n+1 <= m+1` to be always simplified to `n <= m`
 -- To achive such behaviour we simply `#reflect` two Definitions
 @[simp] def leb : Nat -> Nat -> Bool
-  | n+1, m+1 => leb n m
+  | n + 1, m + 1 => leb n m
   | 0, _ => true
   | _, _ => false
 
 @[reflect]
-instance (n m : Nat) : Reflect (n <= m) (leb n m) := by
+instance lebP (n m : Nat) : Reflect (n <= m) (leb n m) := by
   apply reflect_of_equiv
   elim: n m=> //== ?/[swap][]//=?->
   omega
-
-set_option trace.reflect true
 #reflect Nat.le leb
-#check eq_.Nat.le.«0»
+
+def ltb (n m : Nat) := leb (n + 1) m
+
+@[reflect]
+instance (n m : Nat) : Reflect (n < m) (ltb n m) := by
+  apply reflect_of_equiv; srw ltb
+  srw (equiv_of_reflect (lebP ..))
+  omega
+set_option trace.reflect true
+#reflect Nat.lt ltb
 
 @[simp] theorem addSn (m n : Nat) : (Nat.succ m + n) = Nat.succ (m + n) := by omega
 

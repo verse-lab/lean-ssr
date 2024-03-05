@@ -198,4 +198,14 @@ theorem nth_seq1Prop [Inhabited α] (n : Nat) (x : α) :
 theorem last_nth [Inhabited α] (x : α) (s : Seq α) : last x s = nth (x :: s) (size s) := by
   elim: s x => [|y s IHs] x //=
 
+theorem nth_last [Inhabited α] (s : Seq α) : nth s (size s - 1) = last default s := by
+  sby scase: s => //= x s; srw last_nth
+
+theorem nth_behead [Inhabited α] (s : Seq α) (n : Nat) : nth (behead s) n = nth s (n + 1) := by
+  elim: s n=>[|x s _] [] //=
+
+theorem nth_cat [Inhabited α] (s1 s2 : Seq α) (n : Nat) :
+  nth (s1 ++ s2) n = if n < size s1 then nth s1 n else nth s2 (n - size s1) := by
+  elim: s1 n=>[|x s1 IHs] [] //==
+
 end seq
