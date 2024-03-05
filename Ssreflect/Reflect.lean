@@ -55,12 +55,15 @@ def reflect_of_decide [inst1: Decidable P] : b = decide P -> Reflect P b := by
   cases inst1 <;> simp_all
 
 macro "reflect" n:num : attr =>
-  `(attr| default_instance 1000+$n)
+  `(attr| default_instance 1001+$n)
+
+macro "reflect" "-" n:num : attr =>
+  `(attr| default_instance 1001-$n)
 
 macro "reflect" : attr =>
-  `(attr| default_instance 1000)
+  `(attr| default_instance 1001)
 
-@[reflect 1]
+@[reflect]
 instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
   match n with
   | 0 => by simp <;> repeat constructor
@@ -72,17 +75,19 @@ instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
     apply Reflect.F <;> try assumption
     intro n; cases n; contradiction
 
-@[reflect]
+@[reflect -1]
 instance : Reflect True true := by apply Reflect.T <;> simp_all
-@[reflect]
+@[reflect -1]
 instance ReflectFalse : Reflect False false := by apply Reflect.F <;> simp_all
-@[reflect 1]
+@[reflect]
 instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 /\ P2) (b1 && b2) := by
   intros i1 i2; apply reflect_of_decide
   by_cases h : P1 <;> cases i1 <;> simp_all
 
 
 -- #reduce Reflect.toProp (evenb 0)
+
+
 
 def generatePropSimp (np nb : Expr) : TermElabM Unit := do
   let (some np, some nb) := (np.constName?, nb.constName?) | throwError s!"Not a constant"
@@ -121,7 +126,7 @@ def generatePropSimp (np nb : Expr) : TermElabM Unit := do
         name, type, value
         levelParams := c.levelParams
       }
-      -- dbg_trace "Prop:{name}"
+      trace[reflect] name ++ " : " ++ type
       let env <- getEnv
       let s := simpExtension.getState env
       let s <- s.addConst name
@@ -136,6 +141,9 @@ elab "#reflect" ip:ident ib:ident : command => liftTermElabM <| do
   generatePropSimp ip ib
 
 #reflect even evenb
+
+-- example (n : Nat) : even 0 /\ even 1 /\ even (n + 2) := by
+--   simp
 
 -- @[simp] def leb' : Nat -> Nat -> Bool
 --   | n+1, m+1 => leb' n m

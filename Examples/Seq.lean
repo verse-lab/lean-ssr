@@ -138,9 +138,7 @@ inductive last_spec : Seq α → Prop where
   | last_rcons (s : Seq α) (x : α)  : last_spec (rcons s x)
 
 theorem lastP (s : Seq α) : last_spec s := by
-  scase: s => [|x s]
-  { left }
-  { srw lastI; right }
+  scase: s => [|x s]; { left }; srw lastI; right
 
 theorem last_ind (P : Seq α → Prop) :
   P [] → (∀ s x, P s → P (rcons s x)) → ∀ s, P s := by
@@ -178,7 +176,7 @@ theorem nth0 [Inhabited α] (s : Seq α) : nth s 0 = head s := by elim: s=>//=
   | _, _ => false
 
 
-@[reflect 1]
+@[reflect]
 instance (n m : Nat) : Reflect (n <= m) (leb n m) := by
   apply reflect_of_equiv
   elim: n m=> //== ?/[swap][]//=?->
@@ -186,6 +184,8 @@ instance (n m : Nat) : Reflect (n <= m) (leb n m) := by
 
 #reflect Nat.le leb
 
+-- example (n m : Nat) : (Nat.succ n) <= (Nat.succ m) := by
+--   simp
 
 theorem nth_default [Inhabited α] (s : Seq α) (n : Nat) : size s <= n -> nth s n = default := by
   -- NOTE: this solves the goal in Coq; there's probably some lemmas we're missing
