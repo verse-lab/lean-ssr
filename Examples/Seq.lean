@@ -254,12 +254,23 @@ instance hasP (s : Seq α) : Reflect (has a s) (hasb a s) := by
   { scase=>e //== [-> //= | ?? /[tac (right; exists e)]] }
 #reflect has hasb
 
+def all (s : Seq α) : Prop := ∀ (x : α), x ∈ s → a x
+
 @[simp] def allb (s : Seq α) :=
   match s with
   | [] => true
   | x :: s' => a x && allb s'
 
-def all (s : Seq α) : Prop := ∀ (x : α), x ∈ s → a x
+@[reflect]
+instance allP (s : Seq α) : Reflect (all a s) (allb a s) := by
+  apply reflect_of_equiv
+  elim: s=>//== => [x //= | x s' ->]; constructor
+  { move=>[]hx ha y [//= | /ha //=] }
+  {
+    move=>/[dup] h /(_ x) //== hx; constructor
+    { sdone }
+    { move=> y; move: h => /(_ y) //= }
+  }
 
 -- TODO: add lemmas in SeqFind
 

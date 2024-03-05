@@ -89,6 +89,13 @@ elab_rules : tactic
       let name <- fresh "H"
       run `(tactic| intros $name)
       run `(tactic| apply $t:term in $name)
+    | `(ssrIntro|/(_ $t:ident)) => do
+      let name <- fresh "N"
+      let h <- fresh "H"
+      run `(tactic| intros $name)
+      run `(tactic| apply $name:term in $t)
+      run `(tactic| try clear $name)
+      run `(tactic| try clear $h)
     | `(ssrIntro|/($t:term)) => do
       let name <- fresh "H"
       run  `(tactic| intros $name)
