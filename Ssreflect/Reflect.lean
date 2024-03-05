@@ -94,7 +94,7 @@ def generatePropSimp (np nb : Expr) : TermElabM Unit := do
   -- let .some eqs := (eqnsExt.getState (env) |>.map.find? nb) | failure
   let some eqs <- getEqnsFor? nb | throwError s!"No reduction rules for {nb}"
   let mut names : Array Name := #[]
-  for eq in eqs do
+  for eq in eqs, i in [0,eqs.size] do
     -- dbg_trace "Bool:{eq}"
     let env <- getEnv
     let some c := env.find? eq | throwError s!"No reduction rule with name {eq}"
@@ -121,7 +121,7 @@ def generatePropSimp (np nb : Expr) : TermElabM Unit := do
         let body <- elabTermAndSynthesize t none
 
         mkLambdaFVars args body
-      let name := c.name ++ "_Prop"
+      let name := s! "eq_" ++ np ++ s!"{i}"
       addDecl <| Declaration.thmDecl {
         name, type, value
         levelParams := c.levelParams
