@@ -7,16 +7,6 @@ import Std.Tactic.Omega
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 
-
-@[simp] def evenb : Nat -> Bool
-  | 0 => true
-  | 1 => false
-  | n + 2=> evenb n
-
-inductive even : Nat -> Prop where
-  | zero : even 0
-  | add2 (n : Nat) : even n -> even (n + 2)
-
 class inductive Reflect (P : Prop) (b : outParam Bool) : Type
   | T (_ : P) (_:b) : Reflect P b
   | F (_ : ¬ P) (_:b=false) : Reflect P b
@@ -60,34 +50,6 @@ macro "reflect" "-" n:num : attr =>
 
 macro "reflect" : attr =>
   `(attr| default_instance 1001)
-
-@[reflect]
-instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
-  match n with
-  | 0 => by simp <;> repeat constructor
-  | 1 => by simp; apply Reflect.F; intro r; cases r; trivial
-  | n + 2 => by
-    simp; cases (ReflectEven n)
-    { apply Reflect.T <;> try assumption
-      constructor; assumption }
-    apply Reflect.F <;> try assumption
-    intro n; cases n; contradiction
-
-@[reflect -1]
-instance : Reflect True true := by apply Reflect.T <;> simp_all
-@[reflect -1]
-instance ReflectFalse : Reflect False false := by apply Reflect.F <;> simp_all
-@[reflect]
-instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∧ P2) (b1 && b2) := by
-  intros i1 i2; apply reflect_of_decide
-  by_cases h : P1 <;> cases i1 <;> simp_all
-@[reflect]
-instance ReflectOr : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∨ P2) (b1 || b2) := by
-  intros i1 i2; apply reflect_of_decide
-  by_cases h : P1 <;> cases i1 <;> simp_all
-@[reflect]
-instance ReflectDecide : [Decidable P] -> Reflect P (decide P) := by
-  intros; apply reflect_of_decide; trivial
 
 def generatePropSimp (np nb : Expr) : TermElabM Unit := do
   let (some np, some nb) := (np.getAppFn.constName?, nb.getAppFn.constName?) | throwError s!"Either {np} or {nb} is not a function application"
@@ -142,9 +104,47 @@ elab "#reflect" ip:term:max ib:term : command => liftTermElabM <| do
   let ib <- Term.elabTerm ib none
   generatePropSimp ip ib
 
-set_option trace.reflect true
+@[reflect -1]
+instance : Reflect True true := by apply Reflect.T <;> simp_all
+@[reflect -1]
+instance ReflectFalse : Reflect False false := by apply Reflect.F <;> simp_all
+@[reflect]
+instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∧ P2) (b1 && b2) := by
+  intros i1 i2; apply reflect_of_decide
+  by_cases h : P1 <;> cases i1 <;> simp_all
+@[reflect]
+instance ReflectOr : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∨ P2) (b1 || b2) := by
+  intros i1 i2; apply reflect_of_decide
+  by_cases h : P1 <;> cases i1 <;> simp_all
+@[reflect]
+instance ReflectDecide : [Decidable P] -> Reflect P (decide P) := by
+  intros; apply reflect_of_decide; trivial
 
-#reflect even evenb
+-- Examples
+
+-- @[simp] def evenb : Nat -> Bool
+--   | 0 => true
+--   | 1 => false
+--   | n + 2=> evenb n
+
+-- inductive even : Nat -> Prop where
+--   | zero : even 0
+--   | add2 (n : Nat) : even n -> even (n + 2)
+
+-- @[reflect]
+-- instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
+--   match n with
+--   | 0 => by simp <;> repeat constructor
+--   | 1 => by simp; apply Reflect.F; intro r; cases r; trivial
+--   | n + 2 => by
+--     simp; cases (ReflectEven n)
+--     { apply Reflect.T <;> try assumption
+--       constructor; assumption }
+--     apply Reflect.F <;> try assumption
+--     intro n; cases n; contradiction
+
+-- set_option trace.reflect true
+-- #reflect even evenb
 
 -- def leb' : Nat -> Nat -> Bool
 --   | n+1, m+1 => leb' n m
