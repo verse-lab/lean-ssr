@@ -14,4 +14,14 @@ require std from git "https://github.com/leanprover/std4" @ "main"
 @[default_target]
 lean_lib Ssreflect where
   -- add any library configuration options here
-lean_lib Examples where
+
+@[default_target]
+lean_lib Examples {
+  globs := #[.submodules "Examples"]
+}
+
+@[default_target]
+lean_lib Tests {
+  globs := #[.submodules "Tests"]
+  leanOptions := #[⟨`linter.unusedVariables, false⟩]
+}
