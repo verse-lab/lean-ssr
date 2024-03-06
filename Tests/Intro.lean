@@ -80,15 +80,20 @@ theorem rrw_intro_3 : ∀ (x y z : Nat), x = y → y = z → z = x  := by
   move=>x y z -> ->
 
 -- Right rewrite: the rewrite failing leaves the goal unchanged
-/-- error:
-unsolved goals
-x y z : Nat
+/--
+info: x y z : Nat
+⊢ x = y → z = z
+---
+info: x y z : Nat
 ⊢ x = y → z = z
 -/
-#guard_msgs in
+#guard_msgs(info, drop error) in
 theorem rrw_intro_fail_unchaged : ∀ (x y z : Nat), x = y → z = z := by
   move=>x y z;
-  try move=>->;
+  trace_state
+  move=>->;
+  trace_state
+  sby move=>_
 
 -- Left rewrite
 /-- info:
@@ -100,3 +105,19 @@ theorem lrw_intro_1 : ∀ (x y z : Nat), x = y → y = z → z = x := by
   move=>x y z <-
   trace_state
   move=>->;
+
+-- Left rewrite: the rewrite failing leaves the goal unchanged
+/--
+info: x y z : Nat
+⊢ x = y → z = z
+---
+info: x y z : Nat
+⊢ x = y → z = z
+-/
+#guard_msgs(info, drop error) in
+theorem lrw_intro_fail_unchaged : ∀ (x y z : Nat), x = y → z = z := by
+  move=>x y z;
+  trace_state
+  move=><-
+  trace_state
+  sby move=>_;
