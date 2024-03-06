@@ -289,13 +289,8 @@ theorem count_size (s : Seq α) : count a s <= size s := by
 
 theorem all_count (s : Seq α) : all a s = (count a s = size s) := by
   elim: s=>//== x s ->
-  -- FIXME: why doesn't this work?
-  -- scase: (a x)
   scase_if=>//==??;
-  -- FIXME: why doesn't this work?
-  -- move: (count_size a s)
-  -- move: (count_size)
-  have : _ := by apply (count_size a s)
+  move: (count_size a s)
   omega
 
 @[reflect]

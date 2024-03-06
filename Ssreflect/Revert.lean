@@ -94,13 +94,21 @@ elab_rules : tactic
       run  `(tactic| revert $i:term)
   | `(ssrRevert|($ts:term)) => do
       let t <- Term.elabTerm ts none
-      let t <- Revert.kpattern (<- getMainTarget) t
-      if t.hasExprMVar then
+      try
+        let t <- Revert.kpattern (<- getMainTarget) t
+        if t.hasExprMVar then
         throwErrorAt ts "Term is not generalized enough"
-      let x <- fresh "x"
-      let h <- fresh "H"
-      run `(tactic| generalize $h : $ts = $x)
-      run `(tactic| clear $h; revert $x)
+        let x <- fresh "x"
+        let h <- fresh "H"
+        run `(tactic| generalize $h : $ts = $x)
+        run `(tactic| clear $h; revert $x)
+      catch | ex => do
+        let t <- Term.elabTermAndSynthesize ts none
+        let ty <- inferType t
+        let id <- fresh "H"
+        let goal <- (<-getMainGoal).assert id.getId ty t
+        setGoals [goal]
+      -- let t <- instantiateMVars t
   | `(ssrRevert| [ $t:term ]) => do
       let x <- fresh "x"
       let h <- fresh "H"
