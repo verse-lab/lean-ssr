@@ -64,7 +64,7 @@ theorem rrw_intro_1 : ∀ (x y : Nat), x = y + 5 → y = x - 5 := by
   trace_state
   trivial
 
--- Right rewrite: multiple
+-- Right rewrite: multiple sequentially
 /-- info:
 x y z : Nat
 ⊢ y = z → z = y
@@ -74,6 +74,10 @@ theorem rrw_intro_2 : ∀ (x y z : Nat), x = y → y = z → z = x  := by
   move=>x y z ->
   trace_state
   move=>->
+
+-- Right rewrite: multiple sequentially in a single line
+theorem rrw_intro_3 : ∀ (x y z : Nat), x = y → y = z → z = x  := by
+  move=>x y z -> ->
 
 -- Right rewrite: the rewrite failing leaves the goal unchanged
 /-- error:
@@ -85,3 +89,14 @@ x y z : Nat
 theorem rrw_intro_fail_unchaged : ∀ (x y z : Nat), x = y → z = z := by
   move=>x y z;
   try move=>->;
+
+-- Left rewrite
+/-- info:
+x y z : Nat
+⊢ x = z → z = x
+-/
+#guard_msgs in
+theorem lrw_intro_1 : ∀ (x y z : Nat), x = y → y = z → z = x := by
+  move=>x y z <-
+  trace_state
+  move=>->;
