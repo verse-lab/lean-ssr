@@ -308,6 +308,7 @@ def perm_eq (s1 s2 : Seq α) : Bool :=
 -- NOTE: I have unfolded `eqfun` in this definition
 theorem permP (s1 s2 : Seq α) :
   Reflect (∀ x [DecidablePred x], count x s1 = count x s2) (perm_eq s1 s2) := by
+  -- apply reflect_of_equiv; constructor
   sorry
 
 theorem perm_refl (s : Seq α) : perm_eq s s := by srw perm_eq //==; sorry
