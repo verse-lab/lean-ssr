@@ -83,6 +83,12 @@ protected def kpatternType (e : Expr) (p : Expr) (occs : Occurrences := .all) : 
     else return e.exps[0]!
 end Revert
 
+elab t:tactic ":" is:ssrReverts : tactic => do
+  let is' := is.raw[0].getArgs.reverse
+  elabTactic (annotate := (withTacticInfoContextR $ ·[0])) $ mkNullNode is'
+  elabTactic t
+
+
 elab_rules : tactic
   | `(ssrRevert|$i:ident) => do
       run  `(tactic| revert $i:term)
@@ -101,26 +107,28 @@ elab_rules : tactic
       let goalType <- getMainTarget
       let prop <- Term.elabTerm (<- `(term| Prop)) none
       let t <- Term.elabTerm t prop
-      let t <- Revert.kpattern goalType t
-      let dt <- mkAppM `Decidable #[t]
-      let t <- Revert.kpatternType goalType dt
-      let ts <- PrettyPrinter.delab t
-      run `(tactic| generalize $h : $ts = $x)
-      run `(tactic| clear $h; revert $x)
-      run `(tactic| try rewrite [iteIsTrue, iteIsFalse])
+      try
+        let t <- Revert.kpattern goalType t
+        let dt <- mkAppM `Decidable #[t]
+        let t <- Revert.kpatternType goalType dt
+        let ts <- PrettyPrinter.delab t
+        run `(tactic| generalize $h : $ts = $x)
+        run `(tactic| clear $h; revert $x)
+        run `(tactic| try rewrite [iteIsTrue, iteIsFalse])
+      catch
+      | ex => do
+        let dt <- mkAppM `Decidable #[t]
+        let ts <- PrettyPrinter.delab dt
+        run `(tactic| have $h : $ts := by infer_instance)
+        run `(tactic| revert $h:ident)
+
 
 elab_rules : tactic
   | `(ssrReverts| $[$ts]*) => elabTactic (annotate := withTacticInfoContextR) $ mkNullNode ts
-
-elab t:tactic ":" is:ssrReverts : tactic => do
-  let is' := is.raw[0].getArgs.reverse
-  elabTactic (annotate := (withTacticInfoContextR $ ·[0])) $ mkNullNode is'
-  elabTactic t
-
 -- set_option pp.all true
 
 @[simp↓ high] theorem iteIsTrue [Decidable p] (t e : α) (h : p) : (@ite _ _ (Decidable.isTrue h) t e) = t := by rfl
 @[simp↓ high] theorem iteIsFalse [Decidable p] (t e : α) (h : ¬ p) : (@ite _ _ (Decidable.isFalse h) t e) = e := by rfl
 
 -- example (x y : List Nat) : if [] = y then True else false := by
---    skip: (True)
+--    skip: [x = y]
