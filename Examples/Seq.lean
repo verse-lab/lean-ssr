@@ -6,7 +6,7 @@ import Examples.Nat
 -- import Lean
 
 notation "Seq" => List
-set_option trace.reflect true
+-- set_option trace.reflect true
 
 namespace seq
 
@@ -280,11 +280,9 @@ instance allP (s : Seq α) : Reflect (all a s) (allb a s) := by
 -- TODO: add lemmas in SeqFind
 
 theorem size_filter (s : Seq α) : size (filter a s) = count a s := by
-  elim: s => //== x s h
-  -- FIXME: why doesnt <- work instead of `h` above?
-  srw -h
-  -- FIXME: why doesn't scase: (a x) work?
-  scase_if=>//==
+  elim: s => //== x s <-;
+  -- NOTE: [a x] is a case on (a x) as a boolean
+  scase: [a x]=>//==;
 
 theorem count_size (s : Seq α) : count a s <= size s := by
    elim: s =>//== x s; scase_if=>//=
@@ -296,6 +294,7 @@ theorem all_count (s : Seq α) : all a s = (count a s = size s) := by
   scase_if=>//==??;
   -- FIXME: why doesn't this work?
   -- move: (count_size a s)
+  -- move: (count_size)
   have : _ := by apply (count_size a s)
   omega
 
@@ -316,7 +315,6 @@ def perm_eq (s1 s2 : Seq α) : Bool :=
 -- NOTE: I have unfolded `eqfun` in this definition
 theorem permP (s1 s2 : Seq α) :
   Reflect (∀ x [DecidablePred x], count x s1 = count x s2) (perm_eq s1 s2) := by
-  -- apply reflect_of_equiv; constructor
   sorry
 
 theorem perm_refl (s : Seq α) : perm_eq s s := by srw perm_eq //==; sorry
