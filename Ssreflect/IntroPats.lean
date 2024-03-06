@@ -55,6 +55,22 @@ syntax "/[dup]" : ssrIntro
 -- clears
 syntax "{}" ident : ssrIntro
 
+/--
+  Rewrite with top-of-stack hypothesis, either left-to-right (default) or right-to-left,
+  annotating errors at the syntax `arr`.
+-/
+private def rw (arr : Syntax) (rtl : Bool := false) : TacticM Unit := do
+    let name ← fresh "H"
+    let s ← saveState
+    try
+      run `(tactic| intros $name);
+      if rtl then
+        run `(tactic| rw [<-$name:ident])
+      else
+        run `(tactic| rw [$name:ident])
+    catch | ex => do restoreState s; throwErrorAt arr ex.toMessageData
+    tryGoal $ run `(tactic| clear $name)
+
 elab_rules : tactic
     | `(ssrIntro|$i:ident) => run `(tactic| intro $i:ident)
     | `(ssrIntro| ?) => run `(tactic| intro _)
@@ -65,24 +81,9 @@ elab_rules : tactic
       let name ← fresh "H"
       evalTactic $ <- `(tactic| intros $name)
       evalTactic $ <- `(tactic| clear $name)
-
     -- rewrites
-    | `(ssrIntro| ->%$arr) => do
-      let name ← fresh "H"
-      let s ← saveState
-      try
-        run `(tactic| intros $name);
-        run `(tactic| rw [$name:ident])
-      catch | ex => do restoreState s; throwErrorAt arr ex.toMessageData
-      tryGoal $ run `(tactic| clear $name)
-    | `(ssrIntro| <-%$arr) => newTactic do
-      let name ← fresh "H"
-      let s ← saveState
-      try
-        run `(tactic| intros $name);
-        run `(tactic| rw [<-$name:ident])
-      catch | ex => do restoreState s; throwErrorAt arr ex.toMessageData
-      tryGoal $ run `(tactic| clear $name)
+    | `(ssrIntro| ->%$arr) => newTactic do rw arr
+    | `(ssrIntro| <-%$arr) => newTactic do rw arr (rtl := true)
     -- -- switches
     | `(ssrIntro|/$t:ident) => do
       let name <- fresh "H"
