@@ -97,7 +97,7 @@ elab_rules : tactic
       try
         let t <- Revert.kpattern (<- getMainTarget) t
         if t.hasExprMVar then
-        throwErrorAt ts "Term is not generalized enough"
+          throwErrorAt ts "Term is not generalized enough"
         let x <- fresh "x"
         let h <- fresh "H"
         run `(tactic| generalize $h : $ts = $x)
