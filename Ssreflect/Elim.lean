@@ -79,7 +79,7 @@ protected def kpattern (e : Expr) (p : Expr) (occs : Occurrences := .all) : Meta
           visitChildren ()
     let (_, e) <- visit e 0 |>.run {}
     if e.exps.size = 0 then
-      throwError "Pattern was not found"
+      return p
     else return e.exps[0]!
 end Revert
 
