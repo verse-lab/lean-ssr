@@ -71,6 +71,14 @@ private def rw (arr : Syntax) (rtl : Bool := false) : TacticM Unit := do
     catch | ex => do restoreState s; throwErrorAt arr ex.toMessageData
     tryGoal $ run `(tactic| clear $name)
 
+private def view (t : TSyntax `term) : TacticM Unit := do
+  let name <- fresh "H"
+  run `(tactic| intros $name)
+  run `(tactic| first
+    | apply $t:term in $name:ident
+    | rw [$t:term] at $name:ident; revert $name
+    | rw [<-$t:term] at $name:ident; revert $name)
+
 elab_rules : tactic
     | `(ssrIntro|$i:ident) => run `(tactic| intro $i:ident)
     | `(ssrIntro| ?) => run `(tactic| intro _)
@@ -85,20 +93,15 @@ elab_rules : tactic
     | `(ssrIntro| ->%$arr) => newTactic do rw arr
     | `(ssrIntro| <-%$arr) => newTactic do rw arr (rtl := true)
     -- -- switches
-    | `(ssrIntro|/$t:ident) => do
-      let name <- fresh "H"
+    | `(ssrIntro|/$t:ident) => do view t
+    | `(ssrIntro|/($t:term)) => do view t
+    | `(ssrIntro|/(_ $t:ident)) => do
+      let name <- fresh "N"
+      let h <- fresh "H"
       run `(tactic| intros $name)
-      run `(tactic| first
-        | apply $t:term in $name:ident
-        | rw [$t:term] at $name:ident; revert $name
-        | rw [<-$t:term] at $name:ident; revert $name)
-    | `(ssrIntro|/($t:term)) => do
-      let name <- fresh "H"
-      run  `(tactic| intros $name)
-      run `(tactic| first
-        | apply $t:term in $name:ident
-        | rw [$t:term] at $name:ident; revert $name
-        | rw [<-$t:term] at $name:ident; revert $name)
+      run `(tactic| apply $name:term in $t)
+      run `(tactic| try clear $name)
+      run `(tactic| try clear $h)
     | `(ssrIntro|/(_ $t:term)) => do
       let name <- fresh "N"
       let h <- fresh "H"
