@@ -90,8 +90,22 @@ elab_rules : tactic
       run `(tactic| intros $name)
       run `(tactic| clear $name)
     -- rewrites
-    | `(ssrIntro| ->%$arr) => newTactic do rw arr
-    | `(ssrIntro| <-%$arr) => newTactic do rw arr (rtl := true)
+    | `(ssrIntro| ->%$arr) => do
+      let name ← fresh "H"
+      let s ← saveState
+      try
+        run `(tactic| intros $name);
+        run `(tactic| rw [$name:ident])
+      catch | ex => do restoreState s; throwErrorAt arr ex.toMessageData
+      tryGoal $ run `(tactic| clear $name)
+    | `(ssrIntro| <-%$arr) => newTactic do
+      let name ← fresh "H"
+      let s ← saveState
+      try
+        run `(tactic| intros $name);
+        run `(tactic| rw [<-$name:ident])
+      catch | ex => do restoreState s; throwErrorAt arr ex.toMessageData
+      tryGoal $ run `(tactic| clear $name)
     -- -- switches
     | `(ssrIntro|/$t:ident) => do view t
     | `(ssrIntro|/($t:term)) => do view t
@@ -99,9 +113,17 @@ elab_rules : tactic
       let name <- fresh "N"
       let h <- fresh "H"
       run `(tactic| intros $name)
-      run `(tactic| apply $name:term in $t)
-      run `(tactic| try clear $name)
-      run `(tactic| try clear $h)
+      run `(tactic| first
+        | apply $t:term in $name:ident
+        | rw [$t:term] at $name:ident; revert $name
+        | rw [<-$t:term] at $name:ident; revert $name)
+    | `(ssrIntro|/($t:term)) => do
+      let name <- fresh "H"
+      run  `(tactic| intros $name)
+      run `(tactic| first
+        | apply $t:term in $name:ident
+        | rw [$t:term] at $name:ident; revert $name
+        | rw [<-$t:term] at $name:ident; revert $name)
     | `(ssrIntro|/(_ $t:term)) => do
       let name <- fresh "N"
       let h <- fresh "H"
