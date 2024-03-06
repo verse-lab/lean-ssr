@@ -87,8 +87,8 @@ elab_rules : tactic
     | `(ssrIntro| >) => introsDep
     | `(ssrIntro| _) => do
       let name ← fresh "H"
-      evalTactic $ <- `(tactic| intros $name)
-      evalTactic $ <- `(tactic| clear $name)
+      run `(tactic| intros $name)
+      run `(tactic| clear $name)
     -- rewrites
     | `(ssrIntro| ->%$arr) => newTactic do rw arr
     | `(ssrIntro| <-%$arr) => newTactic do rw arr (rtl := true)
