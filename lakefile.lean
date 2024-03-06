@@ -18,4 +18,14 @@ require loogle from git "https://github.com/nomeata/loogle" @ "master"
 @[default_target]
 lean_lib Ssreflect where
   -- add any library configuration options here
-lean_lib Examples where
+
+@[default_target]
+lean_lib Examples {
+  globs := #[.submodules "Examples"]
+}
+
+@[default_target]
+lean_lib Tests {
+  globs := #[.submodules "Tests"]
+  leanOptions := #[⟨`linter.unusedVariables, false⟩]
+}
