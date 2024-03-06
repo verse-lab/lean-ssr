@@ -20,7 +20,7 @@ theorem toPropEq (eq : b1 = b2) [inst1:Reflect P1 b1] [inst2:Reflect P2 b2] :
 
 -- #check Expr
 
-@[simp↑] theorem decide_decidable_of_bool {P} : @decide p (decidable_of_bool b P) = b := by
+theorem decide_decidable_of_bool {P} : @decide p (decidable_of_bool b P) = b := by
   by_cases h : p <;> simp_all
   { apply Eq.symm; rw [P]; simp_all }
   cases b <;> simp_all
@@ -111,11 +111,11 @@ instance ReflectFalse : Reflect False false := by apply Reflect.F <;> simp_all
 @[reflect]
 instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∧ P2) (b1 && b2) := by
   intros i1 i2; apply reflect_of_decide
-  by_cases h : P1 <;> cases i1 <;> simp_all
+  by_cases h : P1 <;> cases i1 <;> simp_all [decide_decidable_of_bool]
 @[reflect]
 instance ReflectOr : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∨ P2) (b1 || b2) := by
   intros i1 i2; apply reflect_of_decide
-  by_cases h : P1 <;> cases i1 <;> simp_all
+  by_cases h : P1 <;> cases i1 <;> simp_all [decide_decidable_of_bool]
 @[reflect]
 instance ReflectDecide : [Decidable P] -> Reflect P (decide P) := by
   intros; apply reflect_of_decide; trivial
