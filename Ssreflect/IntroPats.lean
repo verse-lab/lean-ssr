@@ -180,8 +180,6 @@ elab_rules : tactic
 syntax ssrIntro' := ssrIntro <|> ssrBasic <|> ssrTriv
 elab t:tactic arr:"=> " i:ssrIntro' is:ssrIntros : tactic => do
   evalTactic  t
-   let goals <- getUnsolvedGoals
-  dbg_trace "{goals.length}"
   match i with
   | `(ssrIntro'| []) =>
     withTacticInfoContext arr do
@@ -193,8 +191,6 @@ elab t:tactic arr:"=> " i:ssrIntro' is:ssrIntros : tactic => do
   | _ =>
     withTacticInfoContext arr do
       elabTactic $ mkNullNode $ #[i.raw[0]] ++ is.raw[0].getArgs
-    let goals' <- getUnsolvedGoals
-    setGoals $ goals' ++ goals.tailD []
 
 
 elab_rules : tactic
