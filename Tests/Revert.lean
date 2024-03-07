@@ -18,7 +18,8 @@ theorem named_revert : ∀ (x : Nat), x = x := by
 -/
 theorem subnDA (m n p : Nat) : n - (m + p) = (n - m) - p := by
   elim: m;
-  move=>//;
+  move=> //
+
 
 -- Elim on Nat
 /-- info:
