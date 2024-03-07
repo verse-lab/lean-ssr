@@ -116,7 +116,7 @@ elab_rules : tactic
       run `(tactic| intros $name)
       run `(tactic| let $h := $t)
       run `(tactic| apply $name:term in $h)
-      run `(tactic| try simp only [$h:term])
+      run `(tactic| try dsimp only [$h:term])
       run `(tactic| try clear $name)
       run `(tactic| try clear $h)
 

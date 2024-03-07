@@ -122,6 +122,15 @@ theorem lrw_intro_fail_unchaged : ∀ (x y z : Nat), x = y → z = z := by
   trace_state
   sby move=>_;
 
+/-- info:
+⊢ ¬0 = 0 → False
+-/
+#guard_msgs in
+theorem intro_top_one_arg : (∀ (x : Nat), ¬ x = x) → False := by
+  move=>/(_ 0)
+  trace_state
+  sdone
+
 -- FAILING: Intro top of stack with multiple arguments
 /--
 info: α : Type
