@@ -291,8 +291,28 @@ theorem all_count (s : Seq α) : all a s = (count a s = size s) := by
   move: (count_size a s)
   omega
 
-@[reflect]
-instance all_filterP (s : Seq α) : Reflect (filter a s = s) (all a s) := by sorry
+theorem all_filter (s : Seq α) : all a (filter a s) := by
+  elim: s=> // x s /=
+  scase_if=> //
+
+theorem all_filterP (s : Seq α) : (filter a s = s) = (all a s) := by
+  elim: s=> //== x s
+  scase_if
+  => /== ? _
+  move: (all_filter a s)
+  => /[swap] ->/== //
+
+
+-- theorem all_nthP [Inhabited α] [DecidablePred p] (s : Seq α) :
+--   all p s =
+--   ∀ i, i < size s -> p (nth s i) := by
+--   elim: s=> [/==|/== s ss ->]
+--   { omega }
+--   constructor=> [[px allP] [] //= i ?|allP]
+--   { sby apply allP; omega }
+--   constructor=> [|i ?]
+--   { sby apply (allP 0) }
+--   sby apply (allP (.succ i)); omega
 
 end seq_find
 

@@ -143,8 +143,16 @@ instance ReflectDecide : [Decidable P] -> Reflect P (decide P) := by
 --     apply Reflect.F <;> try assumption
 --     intro n; cases n; contradiction
 
--- set_option trace.reflect true
+-- -- set_option trace.reflect true
 -- #reflect even evenb
+
+-- theorem even_eq : even n -> even (m + n) = even m := by
+--   intro ev
+--   induction ev with
+--   | zero => { intros; rfl }
+--   | add2 n ev n_ih => rw [<-Nat.add_assoc, <-n_ih]; simp
+
+
 
 -- def leb' : Nat -> Nat -> Bool
 --   | n+1, m+1 => leb' n m

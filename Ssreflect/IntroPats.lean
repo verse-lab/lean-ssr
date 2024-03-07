@@ -144,9 +144,11 @@ elab_rules : tactic
 
     -- -- top hyps manipulations
     | `(ssrIntro|/[swap]) => newTactic do
+      run `(tactic| move)
       let forallE n1 _ _ _ := (<- getMainTarget).consumeMData
         | run  `(tactic| fail "Goal is not an arrow type")
       run  `(tactic| intros $(mkIdent n1))
+      run `(tactic| move)
       let forallE n2 _ _ _ := (<- getMainTarget).consumeMData
         | run  `(tactic| fail "Goal is not an arrow type")
       run  `(tactic| intros $(mkIdent n2))
