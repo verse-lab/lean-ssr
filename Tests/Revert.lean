@@ -12,14 +12,32 @@ theorem named_revert : ∀ (x : Nat), x = x := by
   trace_state
   sdone
 
--- set_option trace.reflect true
--- set_option pp.all true
+-- FAILING test case: what is going on here??
+/-- error:
+(kernel) declaration has metavariables 'subnDA'
+-/
+theorem subnDA (m n p : Nat) : n - (m + p) = (n - m) - p := by
+  elim: m;
+  move=>//;
 
+-- Elim on Nat
+/-- info:
+case succ
+m n p : Nat
+⊢ Nat.succ p + m - (Nat.succ p + n) = p + m - (p + n)
+-/
+#guard_msgs in
+theorem subnDl (p m n : Nat) : (p + m) - (p + n) = m - n := by
+  elim: p=>//=p <-
+  trace_state
+  omega
+
+-- Induction on lists and case-split of DecidablePred
+#guard_msgs in
 theorem length_filter (s : List α) (f : α → Prop) [dp : DecidablePred f] :
   List.length (List.filter f s) <= List.length s := by
   elim: s=>//==x xs Ih
   srw List.filter;
-  -- have dx: _ := by apply (dp x)
   scase: [f x];
   { move=>?//= }
   { move=>h//==; omega }
