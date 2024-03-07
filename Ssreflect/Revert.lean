@@ -134,7 +134,7 @@ elab_rules : tactic
 
 
 elab_rules : tactic
-  | `(ssrReverts| $[$ts]*) => elabTactic (annotate := fun _ => withTacticInfoContextR default) $ mkNullNode ts
+  | `(ssrReverts| $[$ts]*) => elabTactic (annotate := fun _ => withTacticInfoContext default) $ mkNullNode ts
 -- set_option pp.all true
 
 @[simp↓ high] theorem decIsTrue (h : p) : @decide _ (Decidable.isTrue h) = true := by rfl
