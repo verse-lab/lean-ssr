@@ -35,8 +35,12 @@ private def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
       if b.isInstImplicit && !(← m.mvarId!.isAssigned) then
         try m.mvarId!.inferInstance
         catch _ => continue
+    let l := f.hasLevelMVar
     let t <- mkAppOptM' f (mvs.pop.push ldecl.toExpr |>.map some)
-    return (<- abstractMVars t).expr
+    let t := (<- abstractMVars t).expr
+    -- dbg_trace l
+    return t
+
 
 elab "apply" t:term "in" name:ident : tactic => newTactic do
   let i := (<- getLCtx).findFromUserName? name.getId
