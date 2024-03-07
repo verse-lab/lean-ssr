@@ -45,7 +45,7 @@ protected def kpatternType (e : Expr) (p : Expr) (occs : Occurrences := .all) : 
     let pHeadIdx := p.toHeadIndex
     let pNumArgs := p.headNumArgs
     let rec visit (e : Expr) (offset : Nat) : StateRefT stateVisit MetaM Unit := do
-      -- dbg_trace s! "AA"
+      -- dbg_trace s! "visit({e})"
       let visitChildren : Unit → StateRefT stateVisit MetaM Unit := fun _ => do
         match e with
         | .app f a         => visit f offset; visit a offset
@@ -55,28 +55,29 @@ protected def kpatternType (e : Expr) (p : Expr) (occs : Occurrences := .all) : 
         | .lam _ d b _     => visit d offset; visit b (offset+1)
         | .forallE _ d b _ => visit d offset; visit b (offset+1)
         | _                => return ()
-      let eTy <- inferType e
       if e.hasLooseBVars then
         visitChildren ()
-      else if eTy.toHeadIndex != pHeadIdx || eTy.headNumArgs != pNumArgs then
-        visitChildren ()
       else
-        -- We save the metavariable context here,
-        -- so that it can be rolled back unless `occs.contains i`.
-        let mctx ← getMCtx
-        -- dbg_trace s! "AA: {<-inferType e}"
-        if (← isDefEq eTy p) then
-          let i := (← get).idx
-          modify $ fun st => { st with idx := i+1 }
-          if occs.contains i then
-            modify $ fun st => { st with exps := st.exps.push e }
-          else
-            -- Revert the metavariable context,
-            -- so that other matches are still possible.
-            setMCtx mctx
-            visitChildren ()
-        else
+        let eTy <- inferType e
+        if eTy.toHeadIndex != pHeadIdx || eTy.headNumArgs != pNumArgs then
           visitChildren ()
+        else
+          -- We save the metavariable context here,
+          -- so that it can be rolled back unless `occs.contains i`.
+          let mctx ← getMCtx
+          -- dbg_trace s! "AA: {<-inferType e}"
+          if (← isDefEq eTy p) then
+            let i := (← get).idx
+            modify $ fun st => { st with idx := i+1 }
+            if occs.contains i then
+              modify $ fun st => { st with exps := st.exps.push e }
+            else
+              -- Revert the metavariable context,
+              -- so that other matches are still possible.
+              setMCtx mctx
+              visitChildren ()
+          else
+            visitChildren ()
     let (_, e) <- visit e 0 |>.run {}
     if e.exps.size = 0 then
       throwError "Pattern was not found"
@@ -125,6 +126,7 @@ elab_rules : tactic
         run `(tactic| try rewrite [iteIsTrue, iteIsFalse])
       catch
       | ex => do
+        -- dbg_trace "revert failed: {<- ex.toMessageData.toString}"
         let dt <- mkAppM `Decidable #[t]
         let ts <- PrettyPrinter.delab dt
         run `(tactic| have $h : $ts := by infer_instance)
@@ -135,8 +137,11 @@ elab_rules : tactic
   | `(ssrReverts| $[$ts]*) => elabTactic (annotate := withTacticInfoContextR) $ mkNullNode ts
 -- set_option pp.all true
 
+@[simp↓ high] theorem decIsTrue (h : p) : @decide _ (Decidable.isTrue h) = true := by rfl
+@[simp↓ high] theorem decIsFalse (h : ¬ p) : @decide _ (Decidable.isFalse h) = false := by rfl
 @[simp↓ high] theorem iteIsTrue [Decidable p] (t e : α) (h : p) : (@ite _ _ (Decidable.isTrue h) t e) = t := by rfl
 @[simp↓ high] theorem iteIsFalse [Decidable p] (t e : α) (h : ¬ p) : (@ite _ _ (Decidable.isFalse h) t e) = e := by rfl
+
 
 -- example (x y : List Nat) : if [] = y then True else false := by
 --    skip: [x = y]
