@@ -147,3 +147,25 @@ theorem length_cons_3 {α : Type} (x : α) (y : α) (xs : List α) :
   move=> /(_ x (y :: xs));
   trace_state
   move=>//=;
+
+-- Intro case single
+/--info: case intro
+x : Nat
+⊢ ¬x = x → False
+-/
+#guard_msgs in
+theorem intro_case_single : (∃ (x: Nat), ¬ x = x) → False := by
+  move=>[x]
+  trace_state
+  move=>//=
+
+-- Intro case multiple
+/-- info: case intro.intro
+x y : Nat
+⊢ ¬x = y → True
+-/
+#guard_msgs in
+theorem intro_case_multiple : (∃ (x y : Nat), ¬ x = y) → True := by
+  move=>![x y]
+  trace_state
+  move=>//=;
