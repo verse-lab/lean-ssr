@@ -6,9 +6,15 @@ import Ssreflect.Elim
 import Ssreflect.ApplyIn
 import Ssreflect.Done
 import Ssreflect.Basic
+import Std.Tactic.Ext
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
+
+elab "fconstructr" : tactic => withMainContext do
+  let mvarIds' ← (← getMainGoal).constructor {newGoals := .all}
+  Term.synthesizeSyntheticMVarsNoPostponing
+  replaceMainGoal mvarIds'
 
 private partial def intro1PStep : TacticM Unit :=
   liftMetaTactic fun goal ↦ do
@@ -46,6 +52,8 @@ syntax "/(_" term ")" : ssrIntro
 -- destructs
 syntax "[ ]" : ssrIntro
 syntax "[" sepBy1(ssrIntros, "|") "]" : ssrIntro
+syntax "![" ssrIntros "]" : ssrIntro
+syntax "⟨" sepBy1(ssrIntros, "|") "⟩" : ssrIntro
 
 -- top hyps manipulations
 syntax "/[swap]" : ssrIntro
@@ -82,7 +90,7 @@ private def view (t : TSyntax `term) : TacticM Unit := do
 elab_rules : tactic
     | `(ssrIntro|$i:ident) => run `(tactic| intro $i:ident)
     | `(ssrIntro| ?) => run `(tactic| intro _)
-    | `(ssrIntro| !) => run `(tactic| apply funext)
+    | `(ssrIntro| !) => run `(tactic| apply_ext_lemma)
     | `(ssrIntro| *) => run `(tactic| intros)
     | `(ssrIntro| >) => introsDep
     | `(ssrIntro| _) => do
@@ -106,8 +114,9 @@ elab_rules : tactic
       let name <- fresh "N"
       let h <- fresh "H"
       run `(tactic| intros $name)
-      run `(tactic| have $h := $t)
+      run `(tactic| let $h := $t)
       run `(tactic| apply $name:term in $h)
+      run `(tactic| try simp only [$h:term])
       run `(tactic| try clear $name)
       run `(tactic| try clear $h)
 
@@ -115,6 +124,16 @@ elab_rules : tactic
     | `(ssrIntro| []) => run `(tactic| scase)
     | `(ssrIntro| [$[$is:ssrIntros]|* ] ) => do
       if (← getUnsolvedGoals).length == 1 then run `(tactic|scase)
+      let goals ← getUnsolvedGoals
+      if goals.length != is.size then
+        let goalsMsg := MessageData.joinSep (goals.map MessageData.ofGoal) m!"\n\n"
+        let s <- `(ssrIntro| [$[$is:ssrIntros]|* ] )
+        throwErrorAt s "Given { is.size } tactics, but excpected { goals.length }\n{goalsMsg}"
+      else
+         idxGoal fun i => newTactic $ elabTactic $ is[i]!.raw[0]
+    | `(ssrIntro| ![$is:ssrIntros] ) => do run `(tactic|scase!); elabTactic $ is.raw[0]
+    | `(ssrIntro| ⟨$[$is:ssrIntros]|* ⟩ ) => do
+      run `(tactic| fconstructr)
       let goals ← getUnsolvedGoals
       if goals.length != is.size then
         let goalsMsg := MessageData.joinSep (goals.map MessageData.ofGoal) m!"\n\n"
