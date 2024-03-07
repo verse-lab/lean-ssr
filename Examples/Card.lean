@@ -88,14 +88,14 @@ instance lawfulApplicative : LawfulApplicative Finset :=
       srw seq_def fmap_def seqLeft_def
       scase_if=> [_|hte !a ]
       · srw image_empty; exact (sup_bot _).symm
-      · srw mem_sup=> ⟨|[]f /mem_image[][b [hb]<-] /mem_image⟩ //
-        move=>/(mem_image_of_mem.{u}) /== /(_ @id α)[?[*]] ⟨//|⟩
+      · srw mem_sup=> ⟨|![f /mem_image ![b hd <-]]⟩ //
+        move=>/(mem_image_of_mem.{u}) /== /(_ @id α) ![*] ⟨//|⟩
         sby apply exists_of_not_empty
     seqRight_eq := fun s t => by
       srw seq_def fmap_def seqRight_def
       scase_if=> [_|hs !a]
       · srw image_empty sup_empty bot_eq_empty
-      · srw mem_sup=> ⟨|[]f /mem_image[][b [hb]<-]⟩ //
+      · srw mem_sup=> ⟨|![f /mem_image ![b hd <-]]⟩ //
         move=> hs ⟨//|⟩⟨|⟩ <;> try erw [image_id]=> //
         sby apply mem_image_const_self.2; apply exists_of_not_empty
     pure_seq := fun f s => by simp only [pure_def, seq_def, sup_singleton, fmap_def]
@@ -104,9 +104,9 @@ instance lawfulApplicative : LawfulApplicative Finset :=
     seq_assoc := by
       move=> α β γ s t u !a /=
       simp only [seq_def, exists_prop, mem_sup, mem_image]
-      move=> ⟨[g][hg][b][][f][hf][a][ha]<-<-|⟩
+      move=> ⟨![g hg b ![f hf a ha <-] <-]|⟩
       · exact ⟨g ∘ f, ⟨comp g, ⟨g, hg, rfl⟩, f, hf, rfl⟩, a, ha, rfl⟩
-      · scase=> c [][]?[][g][hg]<-[f][hf]<-[a][ha]<-
+      · scase=> c ![![? ![g hg <-] f hf <-] a ha <-]
         exact ⟨g, hg, f a, ⟨f, hf, a, ha, rfl⟩, rfl⟩ }
 
 variable [Lattice α] [OrderBot α]
@@ -148,8 +148,8 @@ theorem card_eq_of_bijective' (f : ∀ i, i < n → α) (hf : ∀ a ∈ s, ∃ i
   classical
     shave ?: ∀ a : α, a ∈ s ↔ ∃ (i : _) (hi : i ∈ range n), f i (mem_range.1 hi) = a
     { move=> a
-        ⟨ /hf [] i [] /mem_range hi <-
-          |[] i [] /mem_range /hf' /[swap]->⟩ // }
+        ⟨ /hf ![i /mem_range hi <-]
+          | ![i /mem_range /hf' /[swap]->]⟩ // }
     -- ⟨fun ha =>
     --     let ⟨i, hi, eq⟩ := hf a ha
     --     ⟨i, mem_range.2 hi, eq⟩,
@@ -166,7 +166,7 @@ theorem card_congr' {t : Finset β} (f : ∀ a ∈ s, β) (h₁ : ∀ a ha, f a 
     srw card_attach.symm
     srw -(card_image_of_injective (f := fun a => f a.1 a.2))
     { srw (congr_arg card) (Finset.ext (s₁ := t))=> ?
-      sby srw mem_image=> ⟨/h₃|[a [_ <-]]⟩ }
+      sby srw mem_image=> ⟨/h₃|![a _ <-]⟩ }
     sby scase=> a ? [] b ? /== /h₂
 
 theorem card_le_card_of_inj_on' {t : Finset β} (f : α → β) (hf : ∀ a ∈ s, f a ∈ t)
@@ -199,4 +199,4 @@ theorem surj_on_of_inj_on_of_card_le' {t : Finset β} (f : ∀ a ∈ s, β) (hf 
     shave<-: image (fun a :{ a // a ∈ s } => f a a.prop) s.attach = t
     { apply eq_of_subset_of_card_le=> //
       sby move=>? /mem_image []/==?/hf }
-    srw mem_image=> ? [a [_ <-]] //
+    srw mem_image=> ? ![a _ <-] //

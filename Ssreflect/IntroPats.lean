@@ -52,6 +52,7 @@ syntax "/(_" term ")" : ssrIntro
 -- destructs
 syntax "[ ]" : ssrIntro
 syntax "[" sepBy1(ssrIntros, "|") "]" : ssrIntro
+syntax "![" ssrIntros "]" : ssrIntro
 syntax "⟨" sepBy1(ssrIntros, "|") "⟩" : ssrIntro
 
 -- top hyps manipulations
@@ -62,7 +63,6 @@ syntax "/[dup]" : ssrIntro
 -- clears
 syntax "{}" ident : ssrIntro
 
-<<<<<<< HEAD
 /--
   Rewrite with top-of-stack hypothesis, either left-to-right (default) or right-to-left,
   annotating errors at the syntax `arr`.
@@ -86,8 +86,6 @@ private def view (t : TSyntax `term) : TacticM Unit := do
     | apply $t:term in $name:ident
     | rw [$t:term] at $name:ident; revert $name
     | rw [<-$t:term] at $name:ident; revert $name)
-=======
->>>>>>> 22aff40 (port some proofs)
 
 elab_rules : tactic
     | `(ssrIntro|$i:ident) => run `(tactic| intro $i:ident)
@@ -100,40 +98,11 @@ elab_rules : tactic
       run `(tactic| intros $name)
       run `(tactic| clear $name)
     -- rewrites
-    | `(ssrIntro| ->%$arr) => do
-      let name ← fresh "H"
-      let s ← saveState
-      try
-        run `(tactic| intros $name);
-        run `(tactic| rw [$name:ident])
-      catch | ex => do restoreState s; throwErrorAt arr ex.toMessageData
-      tryGoal $ run `(tactic| clear $name)
-    | `(ssrIntro| <-%$arr) => newTactic do
-      let name ← fresh "H"
-      let s ← saveState
-      try
-        run `(tactic| intros $name);
-        run `(tactic| rw [<-$name:ident])
-      catch | ex => do restoreState s; throwErrorAt arr ex.toMessageData
-      tryGoal $ run `(tactic| clear $name)
+    | `(ssrIntro| ->%$arr) => newTactic do rw arr
+    | `(ssrIntro| <-%$arr) => newTactic do rw arr (rtl := true)
     -- -- switches
     | `(ssrIntro|/$t:ident) => do view t
     | `(ssrIntro|/($t:term)) => do view t
-    | `(ssrIntro|/(_ $t:ident)) => do
-      let name <- fresh "N"
-      let h <- fresh "H"
-      run `(tactic| intros $name)
-      run `(tactic| first
-        | apply $t:term in $name:ident
-        | rw [$t:term] at $name:ident; revert $name
-        | rw [<-$t:term] at $name:ident; revert $name)
-    | `(ssrIntro|/($t:term)) => do
-      let name <- fresh "H"
-      run  `(tactic| intros $name)
-      run `(tactic| first
-        | apply $t:term in $name:ident
-        | rw [$t:term] at $name:ident; revert $name
-        | rw [<-$t:term] at $name:ident; revert $name)
     | `(ssrIntro|/(_ $t:ident)) => do
       let name <- fresh "N"
       let h <- fresh "H"
@@ -150,6 +119,7 @@ elab_rules : tactic
       run `(tactic| try simp only [$h:term])
       run `(tactic| try clear $name)
       run `(tactic| try clear $h)
+
     -- destructs
     | `(ssrIntro| []) => run `(tactic| scase)
     | `(ssrIntro| [$[$is:ssrIntros]|* ] ) => do
@@ -161,6 +131,7 @@ elab_rules : tactic
         throwErrorAt s "Given { is.size } tactics, but excpected { goals.length }\n{goalsMsg}"
       else
          idxGoal fun i => newTactic $ elabTactic $ is[i]!.raw[0]
+    | `(ssrIntro| ![$is:ssrIntros] ) => do run `(tactic|scase!); elabTactic $ is.raw[0]
     | `(ssrIntro| ⟨$[$is:ssrIntros]|* ⟩ ) => do
       run `(tactic| fconstructr)
       let goals ← getUnsolvedGoals
