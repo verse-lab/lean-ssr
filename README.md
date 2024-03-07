@@ -58,19 +58,20 @@ SSReflect intro patterns come after `=>` tactical. The general syntax here would
 3. `/(_ t)`: applies top hypothesis on the stack to `t` 
 4. `/[swap]`,`/[dup]`, `/[apply]`: swaps first two top hypothesis on the stack, duplicates top hypothesis on the stack, applies the first top hypothesis to the the second top hypothesis
 5. `[]`: equivalent to `scase`
-6. `[ branch_1 | branch_2 | .. | branch_n  ]`: equivalent to `scase`, but runs `branch_i` on the `i`-th subgoal which appears after case analysis
-7. `{ name_1 name_2 .. name_n }`: clears all `name_i`s
-8. `{}name`: equivalent to `clear name; intro name`
-9. `/=`, `/==`: equivalent to `dsimp` and `simp` correspondently 
-10. `//`: calls `ssr_triv` tactic. By default it boils down to `trivial`, but you can customize it. For example, if you want it to call tactic `tac` you can write 
+6. `![x y]`: equivalent to `[x [y]]`, e.g. to destruct `∃ (x y : Nat)`
+7. `[ branch_1 | branch_2 | .. | branch_n  ]`: equivalent to `scase`, but runs `branch_i` on the `i`-th subgoal which appears after case analysis
+8. `{ name_1 name_2 .. name_n }`: clears all `name_i`s
+9. `{}name`: equivalent to `clear name; intro name`
+10. `/=`, `/==`: equivalent to `dsimp` and `simp` correspondently
+11. `//`: calls `ssr_triv` tactic. By default it boils down to `trivial`, but you can customize it. For example, if you want it to call tactic `tac` you can write 
 ```lean
 macro_rules
   | `(tactic| ssr_triv) => `(tactic| tac)
 ```
 Note that it will have **no** effect if `tac` didn't manage to solve the goal.
 
-11. `//=`, `//==`: equivalent to `// /=` and `// /==`
-12. `/[tac t]`: calls tactic `t`
+12. `//=`, `//==`: equivalent to `// /=` and `// /==`
+13. `/[tac t]`: calls tactic `t`
 
 Moreover intro patterns are extensible. If you want to add you own intro pattern `pat` implemented as a tactic `t`, just write 
 
