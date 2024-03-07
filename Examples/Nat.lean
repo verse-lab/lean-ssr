@@ -49,4 +49,6 @@ theorem iterD (n m : Nat) (f : α → α) (x : α) : iter (n + m) f x = iter n f
 
 @[simp] def nat_of_bool (b : Bool) := if b then 1 else 0
 
+theorem posnP : n = 0 ∨ 0 < n := by omega
+
 end nat

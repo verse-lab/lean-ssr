@@ -122,35 +122,35 @@ instance ReflectDecide : [Decidable P] -> Reflect P (decide P) := by
 
 -- Examples
 
--- @[simp] def evenb : Nat -> Bool
---   | 0 => true
---   | 1 => false
---   | n + 2=> evenb n
+@[simp] def evenb : Nat -> Bool
+  | 0 => true
+  | 1 => false
+  | n + 2=> evenb n
 
--- inductive even : Nat -> Prop where
---   | zero : even 0
---   | add2 (n : Nat) : even n -> even (n + 2)
+inductive even : Nat -> Prop where
+  | zero : even 0
+  | add2 (n : Nat) : even n -> even (n + 2)
 
--- @[reflect]
--- instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
---   match n with
---   | 0 => by simp <;> repeat constructor
---   | 1 => by simp; apply Reflect.F; intro r; cases r; trivial
---   | n + 2 => by
---     simp; cases (ReflectEven n)
---     { apply Reflect.T <;> try assumption
---       constructor; assumption }
---     apply Reflect.F <;> try assumption
---     intro n; cases n; contradiction
+@[reflect]
+instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
+  match n with
+  | 0 => by simp <;> repeat constructor
+  | 1 => by simp; apply Reflect.F; intro r; cases r; trivial
+  | n + 2 => by
+    simp; cases (ReflectEven n)
+    { apply Reflect.T <;> try assumption
+      constructor; assumption }
+    apply Reflect.F <;> try assumption
+    intro n; cases n; contradiction
 
--- -- set_option trace.reflect true
--- #reflect even evenb
+-- set_option trace.reflect true
+#reflect even evenb
 
--- theorem even_eq : even n -> even (m + n) = even m := by
---   intro ev
---   induction ev with
---   | zero => { intros; rfl }
---   | add2 n ev n_ih => rw [<-Nat.add_assoc, <-n_ih]; simp
+theorem even_eq : even n -> even (m + n) = even m := by
+  intro ev
+  induction ev with
+  | zero => { intros; rfl }
+  | add2 n ev n_ih => rw [<-Nat.add_assoc, <-n_ih]; simp
 
 
 

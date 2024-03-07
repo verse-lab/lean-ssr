@@ -302,6 +302,9 @@ theorem all_filterP (s : Seq α) : (filter a s = s) = (all a s) := by
   move: (all_filter a s)
   => /[swap] ->/== //
 
+theorem count_cat : count a (s1 ++ s2) = count a s1 + count a s2 := by
+  sby elim: s1 s2=> //== *; scase_if
+
 
 -- theorem all_nthP [Inhabited α] [DecidablePred p] (s : Seq α) :
 --   all p s =
@@ -318,20 +321,42 @@ end seq_find
 
 section perm_seq
 
-def count_mem (x : α) := count (fun y => x == y)
+@[simp] def count_mem (x : α) := count (fun y => x = y)
 
 def eqfun {A B : Type} (f g : B → A) := ∀ (x : B), f x = g x
 
-def perm_eq (s1 s2 : Seq α) : Bool :=
+def perm_eq (s1 s2 : Seq α) : Prop :=
   all (fun x => count_mem x s1 = count_mem x s2) (s1 ++ s2)
+
+theorem has_count  [DecidablePred a] : (count a s > 0) = has a s := by
+  elim: s=> // > /==
+  sby scase_if
+
+theorem permP1 (s1 s2 : Seq α) [DecidablePred a]:
+  perm_eq s1 s2 -> count a s1 = count a s2 := by
+  move=> eq_cnt1
+  scase: [count a (s1 ++ s2) = 0]=> [countN0|]; rotate_left
+  { simp [count_cat]; omega }
+  shave ![x s12x a_x]: has a (s1 ++ s2)
+  { elim: (s1 ++ _) countN0=> // x s /== /- simplify has -/
+    sby scase_if }
+  let a' := fun y => ¬(x = y) ∧ a y
+  shave eq_cnt' : ∀s, count a s = count_mem x s + count a' s
+  { elim=> //== >; repeat' scase_if=> // }
+  sby srw !eq_cnt' eq_cnt1 // permP1 //
+termination_by (count a (s1 ++ s2))
+decreasing_by
+  { simp_wf; srw H a'
+    shave: count_mem w (s1 ++ s2) > 0
+    { srw count_mem has_count; exists w }
+    omega }
 
 -- NOTE: I have unfolded `eqfun` in this definition
 theorem permP (s1 s2 : Seq α) :
-  Reflect (∀ x [DecidablePred x], count x s1 = count x s2) (perm_eq s1 s2) := by
-  -- apply reflect_of_equiv; constructor
-  sorry
+  (perm_eq s1 s2) = (∀ x [DecidablePred x], count x s1 = count x s2) := by
+  sby move=> /== ⟨/permP1|??⟩
 
-theorem perm_refl (s : Seq α) : perm_eq s s := by srw perm_eq //==; sorry
+theorem perm_refl (s : Seq α) : perm_eq s s := by sby srw permP
 
 end perm_seq
 
