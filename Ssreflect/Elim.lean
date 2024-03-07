@@ -21,6 +21,37 @@ elab "scase" : tactic => newTactic do
           unless hyps.findFromUserName? hyp.userName |> Option.isSome do
             tryGoal $ run `(tactic| revert $(mkIdent hyp.userName):ident)
 
+syntax "scase!" : tactic
+
+elab_rules : tactic
+  | `(tactic|scase!) => newTactic do
+    let goals := (<- getUnsolvedGoals).length
+    let hyps <- getLCtx
+    let name <- fresh "H"
+    let state <- saveState
+    try
+      run `(tactic| intro $name:ident)
+      run `(tactic| unhygienic cases $name:ident)
+      newTactic do
+        if (<-getUnsolvedGoals).length - goals != 0 then failure
+        let hypsNew <- getLCtx
+        let newLtx := (hypsNew.decls.filter Option.isSome).map Option.get!
+        let newLtx := newLtx.filter (Option.isNone <| hyps.findFromUserName? ·.userName)
+        let mut newLtx := newLtx.toArray
+        if newLtx.size = 0 then failure
+        let state <- saveState
+        try
+          let some lastHyp := newLtx.back? | failure
+          run `(tactic| revert $(mkIdent lastHyp.userName):ident)
+          run `(tactic| scase!)
+          newLtx := newLtx.pop
+        catch | _ => do
+          restoreState state
+        for hyp in newLtx.reverse do
+          run `(tactic| revert $(mkIdent hyp.userName):ident)
+    catch | _ => do
+      restoreState state
+
 
 elab "elim" : tactic => newTactic do
     let hyps <- getLCtx
