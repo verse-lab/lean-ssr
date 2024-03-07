@@ -32,12 +32,47 @@ theorem subnDl (p m n : Nat) : (p + m) - (p + n) = m - n := by
   trace_state
   omega
 
--- Induction on lists and case-split of DecidablePred
+-- Induction on lists
+theorem length_cons (x : α) (xs : List α) :
+  List.length xs ≤ List.length (x :: xs) := by
+  elim: xs=>//=
+
+-- Case-split of DecidablePred
 #guard_msgs in
 theorem length_filter (s : List α) (f : α → Prop) [dp : DecidablePred f] :
-  List.length (List.filter f s) <= List.length s := by
-  elim: s=>//==x xs Ih
-  srw List.filter;
+  List.length (List.filter f s) ≤ List.length s := by
+  elim: s=>//==x xs Ih; srw List.filter;
   scase: [f x];
   { move=>?//= }
   { move=>h//==; omega }
+
+-- Revert theorem application
+/--
+info: α : Type
+x y : α
+xs : List α
+⊢ List.length (y :: xs) ≤ List.length (x :: y :: xs) → List.length (y :: xs) ≤ List.length (x :: y :: xs)
+-/
+#guard_msgs in
+theorem length_cons_1 {α : Type} (x : α) (y : α) (xs : List α) :
+ List.length (y :: xs) ≤ List.length (x :: y :: xs) := by
+ move: (length_cons x (y :: xs))
+ trace_state
+ move=>//=;
+
+-- Revert with hypothesis application
+/--
+info: α : Type
+x y : α
+xs : List α
+⊢ List.length (y :: xs) ≤ List.length (x :: y :: xs) → List.length (y :: xs) ≤ List.length (x :: y :: xs)
+-/
+#guard_msgs in
+theorem length_cons_2 {α : Type} (x : α) (y : α) (xs : List α) :
+  List.length (y :: xs) ≤ List.length (x :: y :: xs) := by
+  have H: ∀ (x : α) (xs : List α), List.length xs ≤ List.length (x :: xs)
+    := by apply length_cons
+  move: (H x (y :: xs))
+  clear H
+  trace_state
+  move=>//=;

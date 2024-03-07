@@ -121,3 +121,20 @@ theorem lrw_intro_fail_unchaged : ∀ (x y z : Nat), x = y → z = z := by
   move=><-
   trace_state
   sby move=>_;
+
+-- FAILING: Intro top of stack with multiple arguments
+/--
+info: α : Type
+x y : α
+xs : List α
+⊢ List.length (y :: xs) ≤ List.length (x :: y :: xs) → List.length (y :: xs) ≤ List.length (x :: y :: xs)
+-/
+#guard_msgs(info) in
+theorem length_cons_3 {α : Type} (x : α) (y : α) (xs : List α) :
+  List.length (y :: xs) ≤ List.length (x :: y :: xs) := by
+  have H: ∀ (x : α) (xs : List α), List.length xs ≤ List.length (x :: xs)
+    := by induction xs with | nil => move=>//= | cons x xs ih => move=>//=
+  revert H;
+  move=> /(_ x (y :: xs));
+  trace_state
+  move=>//=;
