@@ -371,10 +371,10 @@ def mask : Seq Bool -> Seq α -> Seq α
 @[simp] theorem mask_eq3 :
   mask x ([] : List α) = [] := by sby scase: x
 
-@[simp] def subseq : Seq α -> Seq α -> Bool
-  | s1@(x :: s1'), y :: s2' => subseq (if x = y then s1' else s1) s2'
-  | _, _ :: _ => true
-  | s1, _ => s1 = []
+@[simp] def subseqb : Seq α -> Seq α -> Bool
+  | s1@(x :: s1'), y :: s2' => subseqb (if x = y then s1' else s1) s2'
+  | [], _ :: _ => true
+  | s1, [] => s1 = []
 
 @[simp] theorem mask_false (s : Seq α) (n : Nat) : mask (nseq n false) s = [] := by
   elim: s n=> [|??/[swap]][]// ?
@@ -450,11 +450,14 @@ theorem take_oversize (s : Seq α) : size s ≤ n → take n s = s := by
 
 @[simp] theorem behead_cons : behead (x :: xs) = xs := by rfl
 
-theorem subseqP (s1 s2 : Seq α) :
-  (subseq s1 s2) <-> (exists m, size m = size s2 /\ s1 = mask m s2) := by
-  elim: s2 s1=> [| y s2 IHs2] [|x s1]
+def subseq (s1 s2 : Seq α) := exists m, size m = size s2 /\ s1 = mask m s2
+
+@[reflect]
+instance subseqP (s1 s2 : Seq α) :
+  Reflect (subseq s1 s2) (subseqb s1 s2)  := by
+  apply reflect_of_equiv; srw subseq
+  elim: s2 s1=> [| y s2 IHs2] [|x s1] //
   { simp; exists [] }
-  { sby simp }
   { sby simp; exists (nseq (Nat.succ (size s2)) false) }
   simp [IHs2]; constructor=> [] m [] sz_m def_s1
   { sby exists ((x = y) :: m); simp [<-def_s1]; scase_if }
@@ -480,6 +483,32 @@ theorem subseqP (s1 s2 : Seq α) :
   shave sz_i_s2: size (take i s2) = i; simp; omega
   srw lastI cat_rcons ?mask_cat ?size_belast ?sz_i_s2 //== <;> try omega
   sby srw (drop_nth _ lt_i_m) // -[1]h nth_index // -index_mem
+
+
+-- set_option trace.reflect true
+#reflect subseq subseqb
+
+-- theorem subseq_trans' (s1 s2 s3 : Seq α) : subseq s1 s2 -> subseq s2 s3 -> subseq s1 s3 := by
+--   scase! => m2 _ -> ![m1 _ ->]
+--   elim: s3 m1 m2=> [|x s IHs1] // /- use boolean to resolve base case -/
+--   move=> [] // [] m1 /=; rotate_left /- use boolean to resolve m1=[] case -/
+--   { scase=> // [] //= m2; /- use boolean to resolve m2=[] and m2 = true::_ , m1 = true::_ cases -/
+--     sby scase!: (IHs1 m1 m2)=> m ??; exists (false :: m) }
+--   move=> m2; scase!: (IHs1 m1 m2)=> m ??
+--   sby exists (false :: m)
+
+def travsitive {T : Type} (R : T -> T -> Prop) :=
+  forall x y z, R x y -> R y z -> R x z
+
+theorem subseq_trans : travsitive (@subseq α) := by
+  move=> ? ? s ![m2 _ ->] ![m1 _ ->]
+  elim: s m1 m2=> [//|x s IHs1]
+  scase=> [//|[] m1 /=]; rotate_left
+  { scase=> [/=|[] m2] //;
+    scase!: (IHs1 m1 m2)=> m sz_m ?
+    sby exists (false :: m) }
+  move=> m2; scase!: (IHs1 m1 m2)=> m sz_m ?
+  sby exists (false :: m)
 
 end perm_seq
 
