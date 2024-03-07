@@ -47,7 +47,6 @@ elab_rules : tactic
       run `(tactic| intro $name:ident)
       run `(tactic| unhygienic cases $name:ident)
       newTactic do
-        dbg_trace "{(<-getUnsolvedGoals).length}"
         if (<-getUnsolvedGoals).length - goals != 0 then failure
         let hypsNew <- getLCtx
         let newLtx := (hypsNew.decls.filter Option.isSome).map Option.get!
