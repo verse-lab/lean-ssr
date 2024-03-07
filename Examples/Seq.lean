@@ -246,13 +246,9 @@ def has (s : Seq α) : Prop := ∃ (x : α), x ∈ s ∧ a x
 @[reflect]
 instance hasP (s : Seq α) : Reflect (has a s) (hasb a s) := by
   apply reflect_of_equiv
-  elim: s=>//== => [[]//= | x s' ->]; constructor
-  {
-    scase=>h
-    { exists x; sdone }
-    { scase: h=>e h; exists e; sdone }
-  }
-  { scase=>e //== [-> //= | ?? /[tac (right; exists e)]] }
+  elim: s=>//== => [[]//= | x s' ->] ⟨|⟩[]// ![]e;
+  { sby move=> *; exists e }
+  { move=> /== [-> //= | * /[tac (right; exists e)]] }
 #reflect has hasb
 
 def all (s : Seq α) : Prop := ∀ (x : α), x ∈ s → a x
@@ -297,10 +293,8 @@ theorem all_filter (s : Seq α) : all a (filter a s) := by
 
 theorem all_filterP (s : Seq α) : (filter a s = s) = (all a s) := by
   elim: s=> //== x s
-  scase_if
-  => /== ? _
-  move: (all_filter a s)
-  => /[swap] ->/== //
+  scase_if=> /== ? _
+  move: (all_filter a s)=> /[swap] ->/== //
 
 theorem count_cat : count a (s1 ++ s2) = count a s1 + count a s2 := by
   sby elim: s1 s2=> //== *; scase_if

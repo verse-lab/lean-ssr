@@ -86,8 +86,8 @@ end Revert
 
 elab t:tactic ":" is:ssrReverts : tactic => do
   let is' := is.raw[0].getArgs.reverse
-  elabTactic (annotate := (withTacticInfoContextR $ ·[0])) $ mkNullNode is'
-  elabTactic t
+  elabTactic $ mkNullNode is'
+  elabTactic  t
 
 
 elab_rules : tactic
@@ -134,7 +134,7 @@ elab_rules : tactic
 
 
 elab_rules : tactic
-  | `(ssrReverts| $[$ts]*) => elabTactic (annotate := withTacticInfoContextR) $ mkNullNode ts
+  | `(ssrReverts| $[$ts]*) => elabTactic (annotate := fun _ => withTacticInfoContextR default) $ mkNullNode ts
 -- set_option pp.all true
 
 @[simp↓ high] theorem decIsTrue (h : p) : @decide _ (Decidable.isTrue h) = true := by rfl
