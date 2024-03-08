@@ -169,3 +169,19 @@ theorem intro_case_multiple : (∃ (x y : Nat), ¬ x = y) → True := by
   move=>![x y]
   trace_state
   move=>//=;
+
+-- Intro under constructor
+/--
+info: case w
+y : Nat
+⊢ Nat
+
+case h
+y : Nat
+⊢ ?w = y → y = ?w
+-/
+#guard_msgs in
+theorem intro_under_constructor y : ∃ x : Nat, x = y -> y = x := by
+  move=> ⟨|⟩;
+  trace_state
+  sdone; sdone

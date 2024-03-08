@@ -504,6 +504,20 @@ theorem subseq_trans : travsitive (@subseq α) := by
   move=> m2; scase!: (IHs1 m1 m2)=> m sz_m ?
   sby exists (false :: m)
 
+/-
+Lemma subseq_trans T : transitive (@subseq T).
+Proof.
+move=> _ _ s /subseqP[m2 _ ->] /subseqP[m1 _ ->].
+elim: s m1 m2 => [*|x s IHs]; first by rewrite !mask0.
+case=> [*|[] m1] //; first by rewrite mask0.
+  case=> [/=|[] m2] //; first by rewrite /= eqxx IHs.
+  case/subseqP: (IHs m1 m2) => m sz_m ?; apply/subseqP.
+  by exists (false :: m); rewrite //= sz_m.
+move=> m2; case/subseqP: (IHs m1 m2) => m sz_m ?; apply/subseqP.
+by exists (false :: m); rewrite //= sz_m.
+Qed.
+-/
+
 end perm_seq
 
 end seq
