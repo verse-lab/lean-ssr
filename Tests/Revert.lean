@@ -12,14 +12,12 @@ theorem named_revert : ∀ (x : Nat), x = x := by
   trace_state
   sdone
 
--- FAILING test case: what is going on here??
-/-- error:
-(kernel) declaration has metavariables 'subnDA'
--/
+-- Elim on Nat: works with no errors
+#guard_msgs in
 theorem subnDA (m n p : Nat) : n - (m + p) = (n - m) - p := by
   elim: m;
-  move=> //
-
+  move=>//;
+  omega
 
 -- Elim on Nat
 /-- info:
