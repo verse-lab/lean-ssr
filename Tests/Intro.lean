@@ -185,3 +185,18 @@ theorem intro_under_constructor y : ∃ x : Nat, x = y -> y = x := by
   move=> ⟨|⟩;
   trace_state
   sdone; sdone
+
+
+@[ext] theorem dummy_ext (b c : Bool) : (forall n : Nat, b <-> c) -> b = c := by
+  sby scase: b c=> []
+
+/--
+info: case a
+n : Nat
+⊢ true = true ↔ true = true
+-/
+#guard_msgs in
+theorem intro_ext : true = true := by
+  move=> !n;
+  trace_state
+  sdone
