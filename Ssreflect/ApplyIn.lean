@@ -36,7 +36,9 @@ private def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
         try m.mvarId!.inferInstance
         catch _ => continue
     let t <- mkAppOptM' f (mvs.pop.push ldecl.toExpr |>.map some)
-    return (<- abstractMVars t).expr
+    let res <- abstractMVars (levels := false) t
+    let t <- instantiateMVars res.expr
+    return t
 
 elab "apply" t:term "in" name:ident : tactic => newTactic do
   let i := (<- getLCtx).findFromUserName? name.getId
@@ -46,6 +48,11 @@ elab "apply" t:term "in" name:ident : tactic => newTactic do
     tryGoal $ run `(tactic| clear $name:ident)
   else throwErrorAt name "{name} should be in a local context"
 
+-- def appP.{u} :  Type u -> (Type u -> Type u) -> Prop :=
+--   fun x f => True
 
--- example (H : True) (HH : True -> False) : False := by
---   -- apply
+-- set_option pp.universes true
+
+-- example (HH : Type 1 -> Type 1) : Type := by
+--   apply appP in HH
+--   intros; trivial
