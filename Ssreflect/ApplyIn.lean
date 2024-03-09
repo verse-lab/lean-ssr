@@ -28,7 +28,7 @@ private def Lean.Meta.forallMetaTelescopeReducingUntilDefEq
   return (mvs, bis, out)
 
 private def applyIn (stx : Syntax) (ldecl : LocalDecl) : TacticM Expr := do
-  withNewMCtxDepth do
+  -- withNewMCtxDepth do
     let f ← elabTermForApply stx
     let (mvs, bis, _) ← forallMetaTelescopeReducingUntilDefEq (← inferType f) ldecl.type
     for (m, b) in mvs.zip bis do
