@@ -6,7 +6,7 @@ import Ssreflect.Elim
 import Ssreflect.ApplyIn
 import Ssreflect.Done
 import Ssreflect.Basic
-import Std.Tactic.Ext
+
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
@@ -90,7 +90,7 @@ private def view (t : TSyntax `term) : TacticM Unit := do
 elab_rules : tactic
     | `(ssrIntro|$i:ident) => run `(tactic| intro $i:ident)
     | `(ssrIntro| ?) => run `(tactic| intro _)
-    | `(ssrIntro| !) => run `(tactic| apply_ext_lemma)
+    | `(ssrIntro| !) => run `(tactic| apply_ext_theorem)
     | `(ssrIntro| *) => run `(tactic| intros)
     | `(ssrIntro| >) => introsDep
     | `(ssrIntro| _) => do

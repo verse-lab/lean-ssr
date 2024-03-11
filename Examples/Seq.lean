@@ -1,7 +1,8 @@
 import Ssreflect.Lang
 import Std.Data.List
-import Std.Tactic.Omega
+-- import Std.Tactic.Omega
 import Examples.Nat
+import Loogle.Find
 -- import Lean.Elab.Tactic
 -- import Lean
 
@@ -336,19 +337,21 @@ theorem permP1 (s1 s2 : Seq α) [DecidablePred a]:
     sby scase_if }
   let a' := fun y => ¬(x = y) ∧ a y
   shave eq_cnt' : ∀s, count a s = count_mem x s + count a' s
-  { elim=> //== >; repeat' scase_if=> // }
+  { elim=> //== >; srw a'; repeat' scase_if=> // }
   sby srw !eq_cnt' eq_cnt1 // permP1 //
 termination_by (count a (s1 ++ s2))
 decreasing_by
   { simp_wf; srw H a'
     shave: count_mem w (s1 ++ s2) > 0
     { srw has_count; exists w }
+    move: (count (fun y ↦ ¬w = y ∧ a y) (s1 ++ s2))
     omega }
 
 -- NOTE: I have unfolded `eqfun` in this definition
 theorem permP (s1 s2 : Seq α) :
   (perm_eq s1 s2) = (∀ x [DecidablePred x], count x s1 = count x s2) := by
   sby move=> /== ⟨/permP1|??⟩
+
 
 theorem perm_refl (s : Seq α) : perm_eq s s := by sby srw permP
 
@@ -467,7 +470,8 @@ instance subseqP (s1 s2 : Seq α) :
     scase_if: le=> //== ? le
     sby apply (Nat.lt_of_lt_of_le le) }
   shave lt_i_m : i < size m
-  { false_or_by_contra; srw take_oversize // at def_m_i
+  { apply Nat.lt_of_not_le=> ?
+    srw take_oversize // at def_m_i
     sby srw def_m_i mask_false at def_s1 }
   simp [-all_pred1P, lt_i_m] at def_m_i
   exists (take i m ++ drop (i+1) m); constructor

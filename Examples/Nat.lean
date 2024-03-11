@@ -1,5 +1,5 @@
 import Ssreflect.Lang
-import Std.Tactic.Omega
+-- import Std.Tactic.Omega
 
 section nat
 variable {α : Type}
