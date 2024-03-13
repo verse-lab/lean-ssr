@@ -51,4 +51,11 @@ theorem iterD (n m : Nat) (f : α → α) (x : α) : iter (n + m) f x = iter n f
 
 theorem posnP : n = 0 ∨ 0 < n := by omega
 
+example (m n : Nat): n <= m ->
+  m - n + n = m := by
+   elim: n m=> [| n IHm [|m]] //==
+   move=> ?
+   srw -[2](IHm m) //
+
+
 end nat
