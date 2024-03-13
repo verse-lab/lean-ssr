@@ -51,18 +51,43 @@ theorem iterD (n m : Nat) (f : α → α) (x : α) : iter (n + m) f x = iter n f
 
 theorem posnP : n = 0 ∨ 0 < n := by omega
 
-
-
-
-
-
-
-
 example (m n : Nat): n <= m ->
   m - n + n = m := by
    elim: n m=> [| n IHm [|m]] //==
    move=> ?
    srw -[2](IHm m) //
+
+
+@[simp] def evenb : Nat -> Bool
+  | 0 => true
+  | 1 => false
+  | n + 2=> evenb n
+
+inductive even : Nat -> Prop where
+  | zero : even 0
+  | add2 : ∀ n, even n -> even (n + 2)
+
+@[reflect]
+instance evenP n : Reflect (even n) (evenb n) :=
+  match n with
+  | 0 => by sdone
+  | 1 => by simp; apply Reflect.F; intro r; cases r; trivial
+  | n + 2 => by
+    simp; cases (evenP n)
+    { apply Reflect.T <;> try assumption
+      constructor; assumption }
+    apply Reflect.F <;> try assumption
+    intro n; cases n; contradiction
+
+#reflect even evenb
+
+theorem even_eq : even n -> even (m + n) = even m := by
+  elim=> // n _ <-
+  srw -Nat.add_assoc /==
+  -- intro ev
+  -- induction ev with
+  -- | zero => { intros; rfl }
+  -- | add2 n ev n_ih => rw [<-Nat.add_assoc, <-n_ih]; simp
 
 
 end nat

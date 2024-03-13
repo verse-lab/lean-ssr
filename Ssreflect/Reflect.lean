@@ -129,7 +129,7 @@ instance ReflectDecide : [Decidable P] -> Reflect P (decide P) := by
 
 -- inductive even : Nat -> Prop where
 --   | zero : even 0
---   | add2 (n : Nat) : even n -> even (n + 2)
+--   | add2 : ∀ n, even n -> even (n + 2)
 
 /- False /\ P = False -/
 /- True /\ P = P -/

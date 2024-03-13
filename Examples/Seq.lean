@@ -2,7 +2,7 @@ import Ssreflect.Lang
 import Std.Data.List
 -- import Std.Tactic.Omega
 import Examples.Nat
-import Loogle.Find
+-- import Loogle.Find
 -- import Lean.Elab.Tactic
 -- import Lean
 
@@ -365,7 +365,7 @@ def mask : Seq Bool -> Seq α -> Seq α
 @[simp] theorem mask_eq2 :
   mask [] x = [] := by rfl
 
-@[simp] theorem mask_eq3 :
+theorem mask0 :
   mask x ([] : List α) = [] := by sby scase: x
 
 @[simp] def subseqb : Seq α -> Seq α -> Bool
@@ -453,9 +453,9 @@ def subseq (s1 s2 : Seq α) := exists m, size m = size s2 /\ s1 = mask m s2
 instance subseqP (s1 s2 : Seq α) :
   Reflect (subseq s1 s2) (subseqb s1 s2)  := by
   apply reflect_of_equiv; srw subseq
-  elim: s2 s1=> [| y s2 IHs2] [|x s1] //
-  { simp; exists [] }
-  { sby simp; exists (nseq (Nat.succ (size s2)) false) }
+  elim: s2 s1=> [| y s2 IHs2] [|x s1]<;> simp [mask0]=> //
+  { exists [] }
+  { sby exists (nseq (Nat.succ (size s2)) false) }
   simp [IHs2]; constructor=> [] m [] sz_m def_s1
   { sby exists ((x = y) :: m); simp [<-def_s1]; scase_if }
   scase_if=> ne_xy; rotate_right
@@ -499,13 +499,13 @@ def travsitive {T : Type} (R : T -> T -> Prop) :=
   forall x y z, R x y -> R y z -> R x z
 
 theorem subseq_trans : travsitive (@subseq α) := by
-  move=> ? ? s ![m2 _ ->] ![m1 _ ->]
-  elim: s m1 m2=> [//|x s IHs1]
-  scase=> [//|[] m1 /=]; rotate_left
-  { scase=> [/=|[] m2] //;
-    scase!: (IHs1 m1 m2)=> m sz_m ?
+  move=> ?? s ![m2 _ ->] ![m1 _ ->]
+  elim: s m1 m2=> [//|x s IHs1]; srw ?mask0 //
+  scase=> [|[] m1 /=]; { srw ?mask // }
+  { move=> m2; scase!: (IHs1 m1 m2)=> m sz_m ?
     sby exists (false :: m) }
-  move=> m2; scase!: (IHs1 m1 m2)=> m sz_m ?
+  scase=> [/=|[] m2] //;
+  scase!: (IHs1 m1 m2)=> m sz_m ?;
   sby exists (false :: m)
 
 /-
