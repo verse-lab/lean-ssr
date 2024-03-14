@@ -448,7 +448,7 @@ theorem take_oversize (s : Seq α) : size s ≤ n → take n s = s := by
 @[simp] theorem behead_cons : behead (x :: xs) = xs := by rfl
 
 def subseq (s1 s2 : Seq α) :=
-  ∃ m, size m = size s2 /\
+  ∃ m, size m = size s2 ∧
        s1 = mask m s2
 
 @[reflect]
@@ -497,19 +497,19 @@ instance subseqP (s1 s2 : Seq α) :
 --   move=> m2; scase!: (IHs1 m1 m2)=> m ??
 --   sby exists (false :: m)
 
-def travsitive (R : α -> α -> Prop) :=
+def transitive (R : α -> α -> Prop) :=
   ∀x y z, R x y -> R y z -> R x z
 
-theorem subseq_trans : travsitive (@subseq α) := by
+theorem subseq_trans : transitive (@subseq α):= by
   move=> ?? s ![m2 _ ->] ![m1 _ ->]
-  elim: s m1 m2=> [//|x s IHs1]
+  elim: s m1 m2=> [|x s IHs1]
   { sby srw ?mask0 }
   scase=> [|[] m1 /= m2]
   { sby srw ?mask }
-  { scase!: (IHs1 m1 m2)=> m sz_m ?
+  { scase!: (IHs1 m1 m2)=> m ?->
     sby exists (false :: m) }
-  scase: m2=> [/=|[] m2] //;
-  scase!: (IHs1 m1 m2)=> m sz_m ?;
+  scase: m2=> [|[] m2] //=;
+  scase!: (IHs1 m1 m2)=> m ?->;
   sby exists (false :: m)
 
 /-
