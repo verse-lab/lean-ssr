@@ -8,7 +8,7 @@ import Mathlib.Data.Finset.NAry
 -- import Mathlib.Data.Multiset.Functor
 import Mathlib.Data.Finset.Image
 import Ssreflect.Lang
-import Loogle.Find
+-- import Loogle.Find
 
 #align_import data.finset.card from "leanprover-community/mathlib"@"65a1391a0106c9204fe45bc73a039f056558cb83"
 
