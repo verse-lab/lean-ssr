@@ -59,35 +59,53 @@ example (m n : Nat): n <= m ->
 
 
 @[simp] def evenb : Nat -> Bool
-  | 0 => true
-  | 1 => false
-  | n + 2=> evenb n
+  | 0 => true | 1 => false
+  | n + 2 => evenb n
 
 inductive even : Nat -> Prop where
   | zero : even 0
-  | add2 : ∀ n, even n -> even (n + 2)
+  | add2 : ∀ n, even n -> even (n+2)
 
 @[reflect]
-instance evenP n : Reflect (even n) (evenb n) :=
+instance evP n : Reflect (even n) (evenb n):=
   match n with
   | 0 => by sdone
   | 1 => by simp; apply Reflect.F; intro r; cases r; trivial
   | n + 2 => by
-    simp; cases (evenP n)
+    simp; cases (evP n)
     { apply Reflect.T <;> try assumption
       constructor; assumption }
     apply Reflect.F <;> try assumption
     intro n; cases n; contradiction
 
+-- theorem foo : evenb n -> evenb (m + n) = evenb m := by
+
+  -- move=> /(equiv_of_reflect (evP ..))
+  -- elim=> [//|] -- n _ <-
+  -- simp only [evenb]
+  -- sorry
+  -- simp_all
+
 #reflect even evenb
 
-theorem even_eq : even n -> even (m + n) = even m := by
-  elim=> // n _ <-
-  srw -Nat.add_assoc /==
-  -- intro ev
-  -- induction ev with
-  -- | zero => { intros; rfl }
-  -- | add2 n ev n_ih => rw [<-Nat.add_assoc, <-n_ih]; simp
+-- def even_ind n := if even n then 1 else 0
+
+-- @[inline] abbrev Reflect.toBool (P : Prop) [Reflect P b] : Bool := P
+
+-- -- theorem foo (P : Prop) [Reflect P b] : P = Reflect.toProp (Reflect.toBool P) := by sorry
+
+-- @[simp]
+
+-- example : even n -> even (m + n) = even m := by
+--   rw [foo (even (m+n))]
+--   sorry
+  -- elim=> // n _ <-
+  -- simp only [even]
+     --srw -Nat.add_assoc /==
+
+
+
+
 
 
 end nat

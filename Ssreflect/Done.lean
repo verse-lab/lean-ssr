@@ -47,11 +47,18 @@ elab_rules : tactic
 
 syntax (name:= sby) "sby " tacticSeq : tactic
 
-@[tactic sby] def elabSby : Tactic
-  | `(tactic| sby%$sby $ts) => do
-    evalTactic ts
-    unless (<- getUnsolvedGoals).length = 0 do
-      tryGoal $ allGoal $ run `(tactic| solve | ssr_triv)
-    unless (<- getUnsolvedGoals).length = 0 do
-      throwErrorAt sby "No applicable tactic"
-  | _ => throwError "Unsupported index for sby"
+-- @[tactic sby] def elabSby : Tactic
+--   | `(tactic| sby%$sby $ts) => do
+--     evalTactic ts
+--     unless (<- getUnsolvedGoals).length = 0 do
+--       tryGoal $ allGoal $ run `(tactic| solve | ssr_triv)
+--     unless (<- getUnsolvedGoals).length = 0 do
+--       throwErrorAt sby "No applicable tactic"
+--   | _ => throwError "Unsupported index for sby"
+
+elab sby:"sby " ts:tacticSeq : tactic => do
+  evalTactic ts
+  unless (<- getUnsolvedGoals).length = 0 do
+    tryGoal $ allGoal $ run `(tactic| solve | ssr_triv)
+  unless (<- getUnsolvedGoals).length = 0 do
+    throwErrorAt sby "No applicable tactic"

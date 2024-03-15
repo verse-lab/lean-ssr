@@ -31,7 +31,9 @@ private partial def introsDep : TacticM Unit := do
 
 declare_syntax_cat ssrIntro
 declare_syntax_cat ssrIntros
-syntax (name := ssrIntros) (ppSpace colGt (ssrIntro <|> ssrTriv <|> ssrBasic))* : ssrIntros
+syntax ssrTriv : ssrIntro
+syntax ssrBasic : ssrIntro
+syntax (name := ssrIntros) (ppSpace colGt ssrIntro)* : ssrIntros
 -- intros
 syntax ident : ssrIntro
 syntax "?" : ssrIntro
@@ -173,6 +175,8 @@ elab_rules : tactic
       run `(tactic| intros $n2)
       run `(tactic| apply $n1 in $n2)
       run `(tactic| clear $n1)
+    | `(ssrIntro| $t:ssrTriv) => evalTactic t
+    | `(ssrIntro| $t:ssrBasic) => evalTactic t
 
 elab_rules : tactic
   | `(ssrIntros| $[$ts]*) => elabTactic $ mkNullNode ts
