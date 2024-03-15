@@ -57,7 +57,7 @@ example (m n : Nat): n <= m ->
    move=> ?
    srw -[2](IHm m) //
 
-
+namespace Even
 @[simp] def evenb : Nat -> Bool
   | 0 => true | 1 => false
   | n + 2 => evenb n
@@ -102,7 +102,7 @@ instance evP n : Reflect (even n) (evenb n):=
   -- elim=> // n _ <-
   -- simp only [even]
      --srw -Nat.add_assoc /==
-
+end Even
 
 
 
