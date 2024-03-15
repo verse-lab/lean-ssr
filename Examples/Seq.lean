@@ -366,9 +366,9 @@ def mask : Seq Bool -> Seq α -> Seq α
   mask x ([] : List α) = [] := by sby scase: x
 
 @[simp] def subseqb : Seq α -> Seq α -> Bool
-  | s1@(x :: s1'), y :: s2' => subseqb (if x = y then s1' else s1) s2'
   | [], _ :: _ => true
   | s1, [] => s1 = []
+  | s1@(x :: s1'), y :: s2' => subseqb (if x = y then s1' else s1) s2'
 
 @[simp] theorem mask_false (s : Seq α) (n : Nat) : mask (nseq n false) s = [] := by
   elim: s n=> [|??/[swap]][]// ?
@@ -491,10 +491,10 @@ instance subseqP (s1 s2 : Seq α) :
 --   move=> m2; scase!: (IHs1 m1 m2)=> m ??
 --   sby exists (false :: m)
 
-def travsitive {T : Type} (R : T -> T -> Prop) :=
+def transitive {T : Type} (R : T -> T -> Prop) :=
   forall x y z, R x y -> R y z -> R x z
 
-theorem subseq_trans : travsitive (@subseq α) := by
+theorem subseq_trans : transitive (@subseq α) := by
   move=> ? ? s ![m2 _ ->] ![m1 _ ->]
   elim: s m1 m2=> [//|x s IHs1]
   scase=> [//|[] m1 /=]; rotate_left
