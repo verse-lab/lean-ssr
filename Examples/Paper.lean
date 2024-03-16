@@ -32,7 +32,7 @@ inductive even : Nat → Prop where
   | ev0 : even 0
   | ev2: ∀ n, even n → even (n + 2)
 
-def evenb : Nat → Bool
+@[simp]def evenb : Nat → Bool
   | 0 => true
   | 1 => false
   | n + 2 => evenb n
@@ -40,13 +40,11 @@ def evenb : Nat → Bool
 @[reflect] instance evenP n : Reflect (even n) (evenb n) :=
   match n with
   | 0 => by sdone
-  | 1 => by simp [evenb]; apply Reflect.F; intro r; cases r; trivial
+  | 1 => by sby sapply: (Reflect.F)=> // []
   | n + 2 => by
-    simp [evenb]; cases (evenP n)
-    { apply Reflect.T <;> try assumption
-      constructor; assumption }
-    apply Reflect.F <;> try assumption
-    intro n; cases n; contradiction
+    simp; scase: (evenP n)=> ? ->
+    { sby sapply: (Reflect.T) }
+    sby sapply: (Reflect.F)=> // []
 #reflect even evenb
 
 example n m : even n → even (m + n) = even m := by
