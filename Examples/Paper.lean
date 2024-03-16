@@ -57,19 +57,10 @@ example n m : even n → even (m + n) = even m := by
 section Subseq
 variable {α : Type} [DecidableEq α]
 
-def mask: List Bool → List α → List α
+@[simp] def mask: List Bool → List α → List α
   | b :: m, x :: s =>
     if b then x :: mask m s else mask m s
   | _, _ => []
-
--- NOTE: these are not shown in the example in Figure 8
-@[simp] theorem mask_eq1:
-  mask (b :: m') (x :: s') = if b then x :: mask m' s' else mask m' s' := by rfl
-@[simp] theorem mask_eq2:
-  mask [] x = [] := by rfl
-theorem mask0:
-  mask x ([] : List α) = [] := by sby scase: x
--- END NOTE
 
 def subseq (s1 s2 : List α) : Prop :=
   ∃ m, List.length m = List.length s2 ∧
@@ -92,10 +83,8 @@ def transitive (R : α → α → Prop) :=
 
 example : transitive (@subseq α):= by
   move=> ?? s ![m2 _ ->] ![m1 _ ->]
-  elim: s m1 m2=> [|x s IHs1]
-  { sby srw ?mask0 }
-  scase=> [|[] m1 /= m2]
-  { sby srw ?mask }
+  elim: s m1 m2=> [// |x s IHs1]
+  scase=> [// |[] m1 /= m2]
   { scase!: (IHs1 m1 m2)=> m ?->
     sby exists (false :: m) }
   scase: m2=> [|[] m2] //=;
