@@ -1,4 +1,4 @@
-# LeanSSR: SSReflect Tactic language for Lean4
+# LeanSSR: an SSReflect-Like Tactic Language for Lean4
 
 This repository provides a SSReflect tactic language for Lean4, as well as some extra handy tactics you might miss from Coq
 
