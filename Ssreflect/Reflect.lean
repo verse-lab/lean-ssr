@@ -7,14 +7,14 @@ import Ssreflect.Utils
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 
-class inductive Reflect (P : Prop) (b : outParam Bool) : Type
+class inductive Reflect (P : Prop) (b : outParam Bool) : Prop
   | T (_ : P) (_:b) : Reflect P b
   | F (_ : ¬ P) (_:b=false) : Reflect P b
 
-@[inline] abbrev Reflect.toProp (b : Bool) {P : Prop} [Reflect P b] : Prop := P
+@[inline] abbrev Reflect.toProp b {P} [Reflect P b] := P
 
-theorem toPropEq (eq : b1 = b2) [inst1:Reflect P1 b1] [inst2:Reflect P2 b2] :
-  @Reflect.toProp b1 _ inst1 = @Reflect.toProp b2 _ inst2 := by
+theorem toPropEq (_: b1 = b2) [inst1:Reflect P1 b1] [inst2:Reflect P2 b2] :
+  @Reflect.toProp b1 P1 _ = @Reflect.toProp b2 P2 _ := by
   simp [Reflect.toProp]
   cases inst1 <;> cases inst2 <;> simp_all
 
@@ -42,16 +42,16 @@ def reflect_of_decide [inst1: Decidable P] : b = decide P -> Reflect P b := by
   intros r; apply reflect_of_equiv; rw [r]
   cases inst1 <;> simp_all
 
-macro "reflect" n:num : attr =>
-  `(attr| default_instance 1001+$n)
+-- macro "reflect" n:num : attr =>
+--   `(attr| default_instance 1001+$n)
 
-macro "reflect" "-" n:num : attr =>
-  `(attr| default_instance 1001-$n)
+-- macro "reflect" "-" n:num : attr =>
+--   `(attr| default_instance 1001-$n)
 
 macro "reflect" : attr =>
-  `(attr| default_instance 1001)
+  `(attr| default_instance)
 
-def generatePropSimp (np nb : Expr) : TermElabM Unit := do
+def generatePropSimp (np nb : Expr) : CommandElabM Unit := liftTermElabM do
   let (some np, some nb) := (np.getAppFn.constName?, nb.getAppFn.constName?) | throwError s!"Either {np} or {nb} is not a function application"
   let some eqs <- getEqnsFor? (nonRec := true) nb | throwError s!"No reduction rules for {nb}"
   let rs <- getReducibilityStatus nb
@@ -99,14 +99,14 @@ def generatePropSimp (np nb : Expr) : TermElabM Unit := do
     modifyEnv (fun env => simpExtension.modifyState env (·.registerDeclToUnfoldThms np names))
     setReducibilityStatus nb rs
 
-elab "#reflect" ip:term:max ib:term : command => liftTermElabM <| do
-  let ip <- Term.elabTerm ip none
-  let ib <- Term.elabTerm ib none
+elab "#reflect" ip:term:max ib:term : command => do
+  let ip <- liftTermElabM <| Term.elabTerm ip none
+  let ib <- liftTermElabM <| Term.elabTerm ib none
   generatePropSimp ip ib
 
-@[reflect -1]
-instance : Reflect True true := by apply Reflect.T <;> simp_all
-@[reflect -1]
+@[reflect]
+def foo : Reflect True true := by apply Reflect.T <;> simp_all
+@[reflect]
 instance ReflectFalse : Reflect False false := by apply Reflect.F <;> simp_all
 @[reflect]
 instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∧ P2) (b1 && b2) := by
