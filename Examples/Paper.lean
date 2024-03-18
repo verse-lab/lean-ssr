@@ -82,13 +82,13 @@ def transitive (R : α → α → Prop) :=
 example : transitive (@subseq α):= by
   move=> ?? s ![m2 _ ->] ![m1 _ ->]
   elim: s m1 m2=> [// |x s IHs1]
-  scase=> [// |[] m1 /= m2]
-  { scase!: (IHs1 m1 m2)=> m ?->
+  scase=> [// | [] m1 /= m2]
+  { -- m1's head is false
+    scase!: (IHs1 m1 m2)=> m sz_m ->
     sby exists (false :: m) }
+  -- m1's head is true
   scase: m2=> [|[] m2] //=;
-  scase!: (IHs1 m1 m2)=> m ?->;
+  scase!: (IHs1 m1 m2)=> m sz_m->;
   sby exists (false :: m)
-
-
 
 end Subseq
