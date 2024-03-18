@@ -14,7 +14,7 @@ class inductive Reflect (P : Prop) (b : outParam Bool) : Prop
 @[inline] abbrev Reflect.toProp b {P} [Reflect P b] := P
 
 theorem toPropEq (_: b1 = b2) [inst1:Reflect P1 b1] [inst2:Reflect P2 b2] :
-  @Reflect.toProp b1 P1 _ = @Reflect.toProp b2 P2 _ := by
+  P1 = P2 := by
   simp [Reflect.toProp]
   cases inst1 <;> cases inst2 <;> simp_all
 
@@ -42,8 +42,8 @@ def reflect_of_decide [inst1: Decidable P] : b = decide P -> Reflect P b := by
   intros r; apply reflect_of_equiv; rw [r]
   cases inst1 <;> simp_all
 
--- macro "reflect" n:num : attr =>
---   `(attr| default_instance 1001+$n)
+macro "reflect" n:num : attr =>
+  `(attr| default_instance $n)
 
 -- macro "reflect" "-" n:num : attr =>
 --   `(attr| default_instance 1001-$n)
