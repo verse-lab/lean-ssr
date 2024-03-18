@@ -140,20 +140,36 @@ namespace Finset
 
 theorem filter_card_eq' {p : α → Prop} [DecidablePred p] (x : α) :
   (s.filter p).card = s.card -> x ∈ s -> p x := by
-  sby move=> /Eq.ge /eq_of_subset_of_card_le <-
+  move=> /Eq.ge /eq_of_subset_of_card_le <- //
 
-theorem card_eq_of_bijective' (f : ∀ i, i < n → α) (hf : ∀ a ∈ s, ∃ i, ∃ h : i < n, f i h = a)
+theorem card_eq_of_bijective (f : ∀ i, i < n → α) (hf : ∀ a ∈ s, ∃ i, ∃ h : i < n, f i h = a)
+    (hf' : ∀ (i) (h : i < n), f i h ∈ s)
+    (f_inj : ∀ (i j) (hi : i < n) (hj : j < n), f i hi = f j hj → i = j) : s.card = n := by
+  classical
+    have : ∀ a : α, a ∈ s ↔ ∃ (i : _) (hi : i ∈ range n), f i (mem_range.1 hi) = a := fun a =>
+      ⟨fun ha =>
+        let ⟨i, hi, eq⟩ := hf a ha
+        ⟨i, mem_range.2 hi, eq⟩,
+        fun ⟨i, hi, eq⟩ => eq ▸ hf' i (mem_range.1 hi)⟩
+    have : s = (range n).attach.image fun i => f i.1 (mem_range.1 i.2) := by
+      simpa only [ext_iff, mem_image, exists_prop, Subtype.exists, mem_attach, true_and_iff]
+    calc
+      s.card = card ((range n).attach.image fun i => f i.1 (mem_range.1 i.2)) := by rw [this]
+      _ = card (range n).attach :=
+        (card_image_of_injective _) fun ⟨i, hi⟩ ⟨j, hj⟩ eq =>
+          Subtype.eq <| f_inj i j (mem_range.1 hi) (mem_range.1 hj) eq
+      _ = card (range n) := card_attach
+      _ = n := card_range n
+
+theorem card_eq_of_bijective' (f : ∀ i, i < n → α)
+    (hf : ∀ a ∈ s, ∃ i, ∃ h : i < n, f i h = a)
     (hf' : ∀ (i) (h : i < n), f i h ∈ s)
     (f_inj : ∀ (i j) (hi : i < n) (hj : j < n), f i hi = f j hj → i = j) : s.card = n := by
   classical
     shave ?: ∀ a : α, a ∈ s ↔ ∃ (i : _) (hi : i ∈ range n), f i (mem_range.1 hi) = a
     { move=> a
         ⟨ /hf ![i /mem_range hi <-]
-          | ![i /mem_range /hf' /[swap]->]⟩ // }
-    -- ⟨fun ha =>
-    --     let ⟨i, hi, eq⟩ := hf a ha
-    --     ⟨i, mem_range.2 hi, eq⟩,
-    --     fun ⟨i, hi, eq⟩ => eq ▸ hf' i (mem_range.1 hi)⟩
+          | ![i /mem_range /hf' ? <-]⟩ // }
     shave -> : s = (range n).attach.image fun i => f i.1 (mem_range.1 i.2)
     { simpa only [ext_iff, mem_image, exists_prop, Subtype.exists, mem_attach, true_and_iff] }
     srw card_image_of_injective ?card_attach //
