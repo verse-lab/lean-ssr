@@ -1,4 +1,4 @@
-# SSL: SSReflect Tactic language for Lean4
+# LeanSSR: an SSReflect-Like Tactic Language for Lean
 
 This repository provides a SSReflect tactic language for Lean4, as well as some extra handy tactics you might miss from Coq
 
@@ -11,7 +11,7 @@ With `elan` installed, `lake build` should suffice.
 To use Ssreflect in a Lean 4 project, first add this package as a dependency. In your lakefile.lean, add
 
 ```lean
-require Ssreflect from git "https://github.com/verse-lab/ssr-lean"
+require Ssreflect from git "https://github.com/verse-lab/lean-ssr"
 ```
 
 Then run 
