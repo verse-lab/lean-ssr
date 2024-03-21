@@ -58,30 +58,34 @@ SSReflect intro patterns come after `=>` tactical. The general syntax here would
 3. `/(_ t)`: applies top hypothesis on the stack to `t` 
 4. `/[swap]`,`/[dup]`, `/[apply]`: swaps first two top hypothesis on the stack, duplicates top hypothesis on the stack, applies the first top hypothesis to the the second top hypothesis
 5. `[]`: equivalent to `scase`
-6. `![x y]`: equivalent to `[x [y]]`, e.g. to destruct `∃ (x y : Nat)`
+6. `![x y]`: iterative version of `[]`. Destructs the top element on the goal stack and all its nested structures. Equivalent to `[x .. [.. [y]]]`, e.g. to destruct `∃ (x y : Nat)`
 7. `[ branch_1 | branch_2 | .. | branch_n  ]`: equivalent to `scase`, but runs `branch_i` on the `i`-th subgoal which appears after case analysis
 8. `{ name_1 name_2 .. name_n }`: clears all `name_i`s
 9. `{}name`: equivalent to `clear name; intro name`
 10. `/=`, `/==`: equivalent to `dsimp` and `simp` correspondently
-11. `//`: calls `ssr_triv` tactic. By default it boils down to `trivial`, but you can customize it. For example, if you want it to call tactic `tac` you can write 
+11. `//`: calls `ssr_triv` tactic (combination of `simp_all` and `trivial`). If you want to agument it with an extra tactic `tac`, you can write
 ```lean
-macro_rules
+macro_rules : tactic
   | `(tactic| ssr_triv) => `(tactic| tac)
 ```
-Note that it will have **no** effect if `tac` didn't manage to solve the goal.
+Note that `//` will never fail. If it cannot solve the goal it will leave it unchanged. 
 
 12. `//=`, `//==`: equivalent to `// /=` and `// /==`
 13. `/[tac t]`: calls tactic `t`
 
-Moreover intro patterns are extensible. If you want to add you own intro pattern `pat` implemented as a tactic `t`, just write 
+Moreover intro patterns are extensible. If you want to add you own intro pattern `pat`, just write 
 
 ```lean
-macro "pat" : ssr_intro => `(ssr_intro| /[tac t])
+syntax <pat> : ssrIntro.
+elab_rules : tactic
+  | `(ssrIntro| pat) => <implementation>
 ```
 
 ### Revert patterns
 
 We implement `:` tactical, which behaves in the same way as is does in SSReflect. `tac: r_1 r_2 .. r_n` will revert all `r_i`s back to the goal and then executes tactic `tac`. Note that if you put `r_i` in parentheses `(r_i)`, `:` will revert `r_i` keeping a copy of it in the context. 
+
+[TODO] explain `tac: [p]`
 
 ### SSReflect version of `have` tactic
 
@@ -106,10 +110,6 @@ example :
 ```lean
 srw -![1 3](cat_take_drop i m) //= -?[- 5 6](cat_take_drop i s2) def_m_i -cat_cons at h |-
 ```
-
-### Find Command
-
-`#f` command is equivalent to Loogle's `#find` (so you can also search by names) but will also print types of found constants. You can use inside proofs as well.
 
 ### Examples
 
