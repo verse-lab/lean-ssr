@@ -11,12 +11,14 @@ package Ssreflect where
 
 -- require std from git "https://github.com/leanprover/std4" @ "main"
 
-require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "v4.7.0-rc2"
+-- require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "v4.7.0-rc2"
+
+require std from git "https://github.com/leanprover/std4" @ "main"
 
 -- require loogle from git "https://github.com/nomeata/loogle" @ "master"
 
 @[default_target]
-lean_lib Ssreflect where
+lean_lib ssreflect where
   -- add any library configuration options here
 
 @[default_target]

@@ -1,8 +1,6 @@
 import Ssreflect.Lang
 import Std.Data.List
--- import Std.Tactic.Omega
 import Examples.Nat
--- import Loogle.Find
 -- import Lean.Elab.Tactic
 -- import Lean
 
@@ -26,14 +24,9 @@ theorem size0nil (s : Seq α) : 0 = size s -> s = [] := by
   | _, _ => false
 
 def nilp (s : Seq α) : Bool := size s = 0
-<<<<<<< HEAD
-
--- Lemma nilP s : reflect (s = [::]) (nilp s).
-=======
 -- instance nilP (s : Seq α) : Decidable (s = []) := by
 --   apply (decidable_of_bool (nilp s))
 --   sby scase:s
->>>>>>> 298955d (fix ssr_triv)
 
 def ohead : Seq α -> Option α
   | [] => none
