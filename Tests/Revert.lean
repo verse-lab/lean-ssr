@@ -1,5 +1,5 @@
 import Ssreflect.Lang
-import Std.Tactic.GuardMsgs
+-- import Std.Tactic.GuardMsgs
 import Std.Data.List
 
 -- Named revert

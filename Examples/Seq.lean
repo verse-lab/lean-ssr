@@ -1,7 +1,8 @@
 import Ssreflect.Lang
 import Std.Data.List
-import Std.Tactic.Omega
+-- import Std.Tactic.Omega
 import Examples.Nat
+-- import Loogle.Find
 -- import Lean.Elab.Tactic
 -- import Lean
 
@@ -342,19 +343,21 @@ theorem permP1 (s1 s2 : Seq α) [DecidablePred a]:
     sby scase_if }
   let a' := fun y => ¬(x = y) ∧ a y
   shave eq_cnt' : ∀s, count a s = count_mem x s + count a' s
-  { elim=> //== >; repeat' scase_if=> // }
+  { elim=> //== >; srw a'; repeat' scase_if=> // }
   sby srw !eq_cnt' eq_cnt1 // permP1 //
 termination_by (count a (s1 ++ s2))
 decreasing_by
   { simp_wf; srw H a'
     shave: count_mem w (s1 ++ s2) > 0
     { srw has_count; exists w }
+    move: (count (fun y ↦ ¬w = y ∧ a y) (s1 ++ s2))
     omega }
 
 -- NOTE: I have unfolded `eqfun` in this definition
 theorem permP (s1 s2 : Seq α) :
   (perm_eq s1 s2) = (∀ x [DecidablePred x], count x s1 = count x s2) := by
   sby move=> /== ⟨/permP1|??⟩
+
 
 theorem perm_refl (s : Seq α) : perm_eq s s := by sby srw permP
 
@@ -368,7 +371,7 @@ def mask : Seq Bool -> Seq α -> Seq α
 @[simp] theorem mask_eq2 :
   mask [] x = [] := by rfl
 
-@[simp] theorem mask_eq3 :
+theorem mask0 :
   mask x ([] : List α) = [] := by sby scase: x
 
 @[simp] def subseqb : Seq α -> Seq α -> Bool
@@ -450,15 +453,17 @@ theorem take_oversize (s : Seq α) : size s ≤ n → take n s = s := by
 
 @[simp] theorem behead_cons : behead (x :: xs) = xs := by rfl
 
-def subseq (s1 s2 : Seq α) := exists m, size m = size s2 /\ s1 = mask m s2
+def subseq (s1 s2 : Seq α) :=
+  ∃ m, size m = size s2 ∧
+       s1 = mask m s2
 
 @[reflect]
 instance subseqP (s1 s2 : Seq α) :
-  Reflect (subseq s1 s2) (subseqb s1 s2)  := by
+  Reflect (subseq s1 s2) (subseqb s1 s2) := by
   apply reflect_of_equiv; srw subseq
-  elim: s2 s1=> [| y s2 IHs2] [|x s1] //
-  { simp; exists [] }
-  { sby simp; exists (nseq (Nat.succ (size s2)) false) }
+  elim: s2 s1=> [| y s2 IHs2] [|x s1]<;> simp [mask0]=> //
+  { exists [] }
+  { sby exists (nseq (Nat.succ (size s2)) false) }
   simp [IHs2]; constructor=> [] m [] sz_m def_s1
   { sby exists ((x = y) :: m); simp [<-def_s1]; scase_if }
   scase_if=> ne_xy; rotate_right
@@ -473,7 +478,8 @@ instance subseqP (s1 s2 : Seq α) :
     scase_if: le=> //== ? le
     sby apply (Nat.lt_of_lt_of_le le) }
   shave lt_i_m : i < size m
-  { false_or_by_contra; srw take_oversize // at def_m_i
+  { apply Nat.lt_of_not_le=> ?
+    srw take_oversize // at def_m_i
     sby srw def_m_i mask_false at def_s1 }
   simp [-all_pred1P, lt_i_m] at def_m_i
   exists (take i m ++ drop (i+1) m); constructor
@@ -501,13 +507,15 @@ def transitive {T : Type} (R : T -> T -> Prop) :=
   forall x y z, R x y -> R y z -> R x z
 
 theorem subseq_trans : transitive (@subseq α) := by
-  move=> ? ? s ![m2 _ ->] ![m1 _ ->]
-  elim: s m1 m2=> [//|x s IHs1]
-  scase=> [//|[] m1 /=]; rotate_left
-  { scase=> [/=|[] m2] //;
-    scase!: (IHs1 m1 m2)=> m sz_m ?
+  move=> ?? s ![m2 _ ->] ![m1 _ ->]
+  elim: s m1 m2=> [|x s IHs1]
+  { sby srw ?mask0 }
+  scase=> [|[] m1 /= m2]
+  { sby srw ?mask }
+  { scase!: (IHs1 m1 m2)=> m ?->
     sby exists (false :: m) }
-  move=> m2; scase!: (IHs1 m1 m2)=> m sz_m ?
+  scase: m2=> [|[] m2] //=;
+  scase!: (IHs1 m1 m2)=> m ?->;
   sby exists (false :: m)
 
 /-

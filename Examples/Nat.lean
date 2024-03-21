@@ -1,5 +1,5 @@
 import Ssreflect.Lang
-import Std.Tactic.Omega
+-- import Std.Tactic.Omega
 
 section nat
 variable {α : Type}
@@ -50,5 +50,62 @@ theorem iterD (n m : Nat) (f : α → α) (x : α) : iter (n + m) f x = iter n f
 @[simp] def nat_of_bool (b : Bool) := if b then 1 else 0
 
 theorem posnP : n = 0 ∨ 0 < n := by omega
+
+example (m n : Nat): n <= m ->
+  m - n + n = m := by
+   elim: n m=> [| n IHm [|m]] //==
+   move=> ?
+   srw -[2](IHm m) //
+
+namespace Even
+@[simp] def evenb : Nat -> Bool
+  | 0 => true | 1 => false
+  | n + 2 => evenb n
+
+inductive even : Nat -> Prop where
+  | zero : even 0
+  | add2 : ∀ n, even n -> even (n+2)
+
+@[reflect]
+instance evP n : Reflect (even n) (evenb n):=
+  match n with
+  | 0 => by sdone
+  | 1 => by simp; apply Reflect.F; intro r; cases r; trivial
+  | n + 2 => by
+    simp; cases (evP n)
+    { apply Reflect.T <;> try assumption
+      constructor; assumption }
+    apply Reflect.F <;> try assumption
+    intro n; cases n; contradiction
+
+-- theorem foo : evenb n -> evenb (m + n) = evenb m := by
+
+  -- move=> /(equiv_of_reflect (evP ..))
+  -- elim=> [//|] -- n _ <-
+  -- simp only [evenb]
+  -- sorry
+  -- simp_all
+
+#reflect even evenb
+
+-- def even_ind n := if even n then 1 else 0
+
+-- @[inline] abbrev Reflect.toBool (P : Prop) [Reflect P b] : Bool := P
+
+-- -- theorem foo (P : Prop) [Reflect P b] : P = Reflect.toProp (Reflect.toBool P) := by sorry
+
+-- @[simp]
+
+-- example : even n -> even (m + n) = even m := by
+--   rw [foo (even (m+n))]
+--   sorry
+  -- elim=> // n _ <-
+  -- simp only [even]
+     --srw -Nat.add_assoc /==
+end Even
+
+
+
+
 
 end nat

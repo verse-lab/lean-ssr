@@ -4,7 +4,7 @@ import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Ssreflect.Basic
 import Ssreflect.Elim
-import Std.Tactic.Replace
+-- import Std.Tactic.Replace
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic

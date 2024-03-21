@@ -48,6 +48,10 @@ elab "apply" t:term "in" name:ident : tactic => newTactic do
     tryGoal $ run `(tactic| clear $name:ident)
   else throwErrorAt name "{name} should be in a local context"
 
+
+elab "sapply" : tactic => newTactic do
+  let H <- fresh "H"
+  run `(tactic| intros $H; apply $H; try clear $H)
 -- def appP.{u} :  Type u -> (Type u -> Type u) -> Prop :=
 --   fun x f => True
 

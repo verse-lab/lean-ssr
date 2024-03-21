@@ -2,19 +2,19 @@ import Lean
 import Lean.Elab.Tactic
 import Std.Lean.Meta.UnusedNames
 import Ssreflect.Utils
-import Std.Tactic.Omega
+-- import Std.Tactic.Omega
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 
-class inductive Reflect (P : Prop) (b : outParam Bool) : Type
+class inductive Reflect (P : Prop) (b : outParam Bool) : Prop
   | T (_ : P) (_:b) : Reflect P b
   | F (_ : ¬ P) (_:b=false) : Reflect P b
 
-@[inline] abbrev Reflect.toProp (b : Bool) {P : Prop} [Reflect P b] : Prop := P
+@[inline] abbrev Reflect.toProp b {P} [Reflect P b] := P
 
-theorem toPropEq (eq : b1 = b2) [inst1:Reflect P1 b1] [inst2:Reflect P2 b2] :
-  @Reflect.toProp b1 _ inst1 = @Reflect.toProp b2 _ inst2 := by
+theorem toPropEq (_: b1 = b2) [inst1:Reflect P1 b1] [inst2:Reflect P2 b2] :
+  P1 = P2 := by
   simp [Reflect.toProp]
   cases inst1 <;> cases inst2 <;> simp_all
 
@@ -43,15 +43,15 @@ def reflect_of_decide [inst1: Decidable P] : b = decide P -> Reflect P b := by
   cases inst1 <;> simp_all
 
 macro "reflect" n:num : attr =>
-  `(attr| default_instance 1001+$n)
+  `(attr| default_instance $n)
 
-macro "reflect" "-" n:num : attr =>
-  `(attr| default_instance 1001-$n)
+-- macro "reflect" "-" n:num : attr =>
+--   `(attr| default_instance 1001-$n)
 
 macro "reflect" : attr =>
-  `(attr| default_instance 1001)
+  `(attr| default_instance)
 
-def generatePropSimp (np nb : Expr) : TermElabM Unit := do
+def generatePropSimp (np nb : Expr) : CommandElabM Unit := liftTermElabM do
   let (some np, some nb) := (np.getAppFn.constName?, nb.getAppFn.constName?) | throwError s!"Either {np} or {nb} is not a function application"
   let some eqs <- getEqnsFor? (nonRec := true) nb | throwError s!"No reduction rules for {nb}"
   let rs <- getReducibilityStatus nb
@@ -99,14 +99,14 @@ def generatePropSimp (np nb : Expr) : TermElabM Unit := do
     modifyEnv (fun env => simpExtension.modifyState env (·.registerDeclToUnfoldThms np names))
     setReducibilityStatus nb rs
 
-elab "#reflect" ip:term:max ib:term : command => liftTermElabM <| do
-  let ip <- Term.elabTerm ip none
-  let ib <- Term.elabTerm ib none
+elab "#reflect" ip:term:max ib:term : command => do
+  let ip <- liftTermElabM <| Term.elabTerm ip none
+  let ib <- liftTermElabM <| Term.elabTerm ib none
   generatePropSimp ip ib
 
-@[reflect -1]
-instance : Reflect True true := by apply Reflect.T <;> simp_all
-@[reflect -1]
+@[reflect]
+def foo : Reflect True true := by apply Reflect.T <;> simp_all
+@[reflect]
 instance ReflectFalse : Reflect False false := by apply Reflect.F <;> simp_all
 @[reflect]
 instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∧ P2) (b1 && b2) := by
@@ -122,35 +122,40 @@ instance ReflectDecide : [Decidable P] -> Reflect P (decide P) := by
 
 -- Examples
 
-@[simp] def evenb : Nat -> Bool
-  | 0 => true
-  | 1 => false
-  | n + 2=> evenb n
+-- @[simp] def evenb : Nat -> Bool
+--   | 0 => true
+--   | 1 => false
+--   | n + 2=> evenb n
 
-inductive even : Nat -> Prop where
-  | zero : even 0
-  | add2 (n : Nat) : even n -> even (n + 2)
+-- inductive even : Nat -> Prop where
+--   | zero : even 0
+--   | add2 : ∀ n, even n -> even (n + 2)
 
-@[reflect]
-instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
-  match n with
-  | 0 => by simp <;> repeat constructor
-  | 1 => by simp; apply Reflect.F; intro r; cases r; trivial
-  | n + 2 => by
-    simp; cases (ReflectEven n)
-    { apply Reflect.T <;> try assumption
-      constructor; assumption }
-    apply Reflect.F <;> try assumption
-    intro n; cases n; contradiction
+/- False /\ P = False -/
+/- True /\ P = P -/
 
--- set_option trace.reflect true
-#reflect even evenb
+/- false && b = b -/
 
-theorem even_eq : even n -> even (m + n) = even m := by
-  intro ev
-  induction ev with
-  | zero => { intros; rfl }
-  | add2 n ev n_ih => rw [<-Nat.add_assoc, <-n_ih]; simp
+-- @[reflect]
+-- instance ReflectEven (n: Nat) : Reflect (even n) (evenb n) :=
+--   match n with
+--   | 0 => by simp <;> repeat constructor
+--   | 1 => by simp; apply Reflect.F; intro r; cases r; trivial
+--   | n + 2 => by
+--     simp; cases (ReflectEven n)
+--     { apply Reflect.T <;> try assumption
+--       constructor; assumption }
+--     apply Reflect.F <;> try assumption
+--     intro n; cases n; contradiction
+
+-- -- set_option trace.reflect true
+-- #reflect even evenb
+
+-- theorem even_eq : even n -> even (m + n) = even m := by
+--   intro ev
+--   induction ev with
+--   | zero => { intros; rfl }
+--   | add2 n ev n_ih => rw [<-Nat.add_assoc, <-n_ih]; simp
 
 
 

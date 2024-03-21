@@ -13,7 +13,7 @@ elab "scase" : tactic => newTactic do
     let name <- fresh "H"
     run `(tactic| intro $name:ident)
     run `(tactic| unhygienic cases $name:ident)
-    allGoal $ newTactic do
+    tryGoal $ allGoal $ newTactic do
       let hypsNew <- getLCtx
       for hyp in hypsNew.decls.toArray.reverse do
         if hyp.isSome then
