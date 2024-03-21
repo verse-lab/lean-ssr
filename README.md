@@ -17,7 +17,7 @@ require ssreflect from git "https://github.com/verse-lab/lean-ssr" @ "master"
 Then run 
 
 ```
-lake update Ssreflect
+lake update ssreflect
 ```
 
 You also need to make sure that your lean-toolchain file contains the same version of Lean 4 as SSReflect's, and that your versions of SSReflect's dependencies (currently only std4) match. We unfortunately can't support version ranges at the moment.
