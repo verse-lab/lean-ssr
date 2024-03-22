@@ -33,7 +33,7 @@ declare_syntax_cat ssrIntro
 declare_syntax_cat ssrIntros
 syntax ssrTriv : ssrIntro
 syntax ssrBasic : ssrIntro
-syntax (name := ssrIntros) (ppSpace colGt ssrIntro)* : ssrIntros
+syntax (name := ssrIntros) (ppSpace colGt ssrIntro)* ppSpace : ssrIntros
 -- intros
 syntax ident : ssrIntro
 syntax "?" : ssrIntro
@@ -187,7 +187,7 @@ def mkNAryDestruct : Nat -> MacroM (TSyntax `ssrIntro)
     | `(ssrIntro| [$[$is:ssrIntros]|*]) => do
       let i <- `(ssrIntros| )
       let is := is.push i
-      `(ssrIntro| [$[$is:ssrIntros]|* ] )
+      `(ssrIntro| [$[$is:ssrIntros ]|*] )
     | _ => panic! "??"
 
 elab_rules : tactic
@@ -229,6 +229,10 @@ elab_rules : tactic
     try run `(tactic| intros $i:ident)
     catch | ex => throwErrorAt i ex.toMessageData
 
+inductive foo where
+ | foo
+ | foo'
+ | foo''
 
--- example : True \/ True \/ True -> True -> True /\ True -> True := by
---   scase=> [|] ?? []
+-- example : foo -> True -> True ∨ True -> True := by
+--   move=> [ | | ] //
