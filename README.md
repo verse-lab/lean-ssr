@@ -39,4 +39,4 @@ Main LeanSSR features are documented [here](https://arxiv.org/abs/2403.12733). M
 
 ## Examples
 
-You can find SSL use case examples at `Examples` folder
+You can find LeanSSR use case examples at `Examples` folder
