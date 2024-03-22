@@ -229,10 +229,10 @@ elab_rules : tactic
     try run `(tactic| intros $i:ident)
     catch | ex => throwErrorAt i ex.toMessageData
 
-inductive foo where
- | foo
- | foo'
- | foo''
+-- inductive foo where
+--  | foo
+--  | foo'
+--  | foo''
 
 -- example : foo -> True -> True ∨ True -> True := by
 --   move=> [ | | ] //
