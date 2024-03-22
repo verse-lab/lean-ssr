@@ -34,7 +34,7 @@ Once LeanSSR is downloaded and compiler, the following test file should compile:
 import Ssreflect.Lang
 
 example {α : Type} : α → α := by
-  -- The following is euqivalen to 
+  -- The following is euqivalent to 
   -- intro x; trivial
   move=> x//
 ```
