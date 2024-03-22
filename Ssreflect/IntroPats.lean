@@ -53,6 +53,7 @@ syntax "/(_" term ")" : ssrIntro
 
 -- destructs
 syntax "[ ]" : ssrIntro
+syntax "?[]" : ssrIntro
 syntax "[" sepBy1(ssrIntros, "|") "]" : ssrIntro
 syntax "![" ssrIntros "]" : ssrIntro
 syntax "⟨" sepBy1(ssrIntros, "|") "⟩" : ssrIntro
@@ -178,8 +179,28 @@ elab_rules : tactic
     | `(ssrIntro| $t:ssrTriv) => evalTactic t
     | `(ssrIntro| $t:ssrBasic) => evalTactic t
 
+def mkNAryDestruct : Nat -> MacroM (TSyntax `ssrIntro)
+  | 0 => `(ssrIntro| [])
+  | n+1 => do
+    let ndest <- mkNAryDestruct n
+    match ndest with
+    | `(ssrIntro| [$[$is:ssrIntros]|*]) => do
+      let i <- `(ssrIntros| )
+      let is := is.push i
+      `(ssrIntro| [$[$is:ssrIntros]|* ] )
+    | _ => panic! "??"
+
+elab_rules : tactic
+  | `(ssrIntro | ?[]) => do
+    if (← getUnsolvedGoals).length == 1 then run `(tactic|scase)
+    let n := (← getUnsolvedGoals).length
+    let stx <- `(ssrIntro | ?[])
+    let nbr <- liftMacroM $ mkNAryDestruct (n-1)
+    TryThis.addSuggestion stx nbr (origSpan? := ← getRef)
+
 elab_rules : tactic
   | `(ssrIntros| $[$ts]*) => elabTactic $ mkNullNode ts
+
 
 syntax ssrIntro' := ssrIntro <|> ssrBasic <|> ssrTriv
 elab t:tactic arr:"=> " i:ssrIntro' is:ssrIntros : tactic => do
@@ -189,6 +210,10 @@ elab t:tactic arr:"=> " i:ssrIntro' is:ssrIntros : tactic => do
     withTacticInfoContext arr do
       elabTactic $ mkNullNode $ #[i.raw[0]] ++ is.raw[0].getArgs
   | `(ssrIntro'| [ $_:ssrIntros|* ]) =>
+    withTacticInfoContext arr do
+      elabTactic i.raw[0]
+      elabTactic is.raw[0]
+  | `(ssrIntro'| ?[]) =>
     withTacticInfoContext arr do
       elabTactic i.raw[0]
       elabTactic is.raw[0]
@@ -205,5 +230,5 @@ elab_rules : tactic
     catch | ex => throwErrorAt i ex.toMessageData
 
 
--- example : True \/ True -> True -> True /\ True -> True := by
---   scase=> [ [a] [] {}a  | * ] //=
+-- example : True \/ True \/ True -> True -> True /\ True -> True := by
+--   scase=> [|] ?? []
