@@ -37,6 +37,6 @@ example {α : Type} : α → α := by
 
 Main LeanSSR features are documented [here](https://arxiv.org/abs/2403.12733). More detailed documentation of LeanSSR DSL can be found at [LeanSSR Wiki](https://github.com/verse-lab/lean-ssr/wiki)
 
-### Examples
+## Examples
 
 You can find SSL use case examples at `Examples` folder
