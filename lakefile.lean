@@ -22,6 +22,11 @@ lean_lib Examples {
 }
 
 @[default_target]
+lean_lib Talk {
+  globs := #[.submodules "Talk"]
+}
+
+@[default_target]
 lean_lib Tests {
   globs := #[.submodules "Tests"]
   leanOptions := #[⟨`linter.unusedVariables, false⟩]

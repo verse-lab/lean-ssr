@@ -105,20 +105,24 @@ elab "#reflect" ip:term:max ib:term : command => do
   generatePropSimp ip ib
 
 @[reflect]
-def foo : Reflect True true := by apply Reflect.T <;> simp_all
+instance trueP : Reflect True true := by apply Reflect.T <;> simp_all
 @[reflect]
-instance ReflectFalse : Reflect False false := by apply Reflect.F <;> simp_all
+instance talseP : Reflect False false := by apply Reflect.F <;> simp_all
 @[reflect]
-instance ReflectAnd : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∧ P2) (b1 && b2) := by
+instance andP : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∧ P2) (b1 && b2) := by
   intros i1 i2; apply reflect_of_decide
   by_cases h : P1 <;> cases i1 <;> simp_all [decide_decidable_of_bool]
 @[reflect]
-instance ReflectOr : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∨ P2) (b1 || b2) := by
+instance orP : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∨ P2) (b1 || b2) := by
   intros i1 i2; apply reflect_of_decide
   by_cases h : P1 <;> cases i1 <;> simp_all [decide_decidable_of_bool]
 @[reflect]
-instance ReflectDecide : [Decidable P] -> Reflect P (decide P) := by
+instance decideP : [Decidable P] -> Reflect P (decide P) := by
   intros; apply reflect_of_decide; trivial
+@[reflect]
+instance ifP [Reflect P1 b1] [Reflect P2 b2] [Decidable P] :
+  Reflect (if P then P1 else P2) (if P then b1 else b2) := by
+  by_cases P <;> simp_all
 
 -- Examples
 

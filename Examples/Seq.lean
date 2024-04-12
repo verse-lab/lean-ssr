@@ -446,8 +446,8 @@ theorem take_oversize (s : Seq α) : size s ≤ n → take n s = s := by
 
 @[simp] theorem behead_cons : behead (x :: xs) = xs := by rfl
 
-def subseq (s1 s2 : Seq α) :=
-  ∃ m, size m = size s2 ∧
+def subseq (s1 s2 : List α) : Prop :=
+  ∃ m : List Bool, size m = size s2 ∧
        s1 = mask m s2
 
 @[reflect]
@@ -484,8 +484,12 @@ instance subseqP (s1 s2 : Seq α) :
   sby srw (drop_nth _ lt_i_m) // -[1]h nth_index // -index_mem
 
 
--- set_option trace.reflect true
+set_option trace.reflect true
 #reflect subseq subseqb
+
+#check
+∀ x y s r,subseq (x :: s) (y :: r) =
+  if x = y then subseq s r else subseq (x :: s) r
 
 -- theorem subseq_trans' (s1 s2 s3 : Seq α) : subseq s1 s2 -> subseq s2 s3 -> subseq s1 s3 := by
 --   scase! => m2 _ -> ![m1 _ ->]
