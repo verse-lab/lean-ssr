@@ -50,11 +50,12 @@ variable {α : Type} [DecidableEq α]
 
 @[simp] def subseqb : List α -> List α -> Bool
   | [], _ :: _ => true
-  | s1, [] => s1 = []
+  | s1, [] => s1 == []
   | x :: s1, y :: s2 =>
     if x = y then
       subseqb s1 s2
     else subseqb (x :: s1) s2
+
 
 example : subseqb [2, 3, 6] [1, 2, 3, 4, 5, 6] = true := by simp
 example : subseqb [2, 7, 6] [1, 2, 3, 4, 5, 6] = false := by simp
@@ -67,75 +68,28 @@ end subseq_via_recursion
 
 /- Can we have them both? -/
 
-def transitive {T : Type} (R : T -> T -> Prop) :=
-  forall x y z, R x y -> R y z -> R x z
-
--- theorem subseq_trans : transitive (@subseq α) := by
---   move=> ?? s ![m2 _ ->] ![m1 _ ->]
---   elim: s m1 m2=> [|x s IHs1]
---   { simp }
---   scase=> [|[] m1 /= m2]
---   { simp }
---   { scase!: (IHs1 m1 m2)=> m ?->
---     sby exists (false :: m) }
---   scase: m2=> [|[] m2] //=
---   { simp }
---   { scase!: (IHs1 m1 m2)=> m ?->
---     exists (false :: m)=> // }
---   { specialize IHs1 m1 m2
---     simp }
-
-
-/- Coq/SSReflect approach -/
-
--- section coqssr
-
--- variable {α : Type} [DecidableEq α]
-
--- /- subseq s1 s2 <-> subseqb s1 s2 = true -/
--- theorem subseqP (s1 s2 : List α) :
---   Reflect (subseq s1 s2) (subseqb s1 s2) := by sorry
-
--- example : transitive (@subseq α) := by
---   move=> ?? s ![m2 _ ->] ![m1 _ ->]
---   elim: s m1 m2=> [|x s IHs1]
---   { simp; srw -(equiv_of_reflect (subseqP ..)) /- apply/subseqP -/
---     simp }
---   scase=> [|[] m1 /= m2]
---   { simp; srw -(equiv_of_reflect (subseqP ..))
---     simp }
---   { scase!: (IHs1 m1 m2)=> m ?->
---     sby exists (false :: m) }
---   scase: m2=> [|[] m2] /=
---   { srw -(equiv_of_reflect (subseqP ..)) /- apply/subseqP -/
---     simp  }
---   { scase!: (IHs1 m1 m2)=> m ?->
---     exists (false :: m)=> // }
---   { specialize IHs1 m1 m2
---     srw -(equiv_of_reflect (subseqP ..))  /- apply/subseqP -/
---     srw -(equiv_of_reflect (subseqP ..)) at IHs1
---     simp [IHs1] }
-
--- end coqssr
-
-
 section leanssr
 
 variable {α : Type} [DecidableEq α]
 
 @[reflect]
-instance (s1 s2 : List α) :
+instance subseqP (s1 s2 : List α) :
   Reflect (subseq s1 s2) (subseqb s1 s2) := by
-   apply reflect_of_equiv
-   sorry
+    apply reflect_of_equiv
+    sorry
 
 set_option trace.reflect true
 #reflect subseq subseqb
 
+def transitive {T : Type} (R : T -> T -> Prop) :=
+  forall x y z, R x y -> R y z -> R x z
+
 example : transitive (@subseq α) := by
   move=> ?? s ![m2 _ ->] ![m1 _ ->]
   elim: s m1 m2=> [|x s IHs1]
-  { simp }
+  { simp
+    -- srw -(equiv_of_reflect (subseqP ..))
+  }
   scase=> [|[] m1 /= m2]
   { simp }
   { scase!: (IHs1 m1 m2)=> m ?->

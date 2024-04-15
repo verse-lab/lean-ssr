@@ -209,6 +209,9 @@ def _root_.Lean.EnvExtension.get [Inhabited σ] (ext : EnvExtension σ) : MetaM 
 initialize
   registerTraceClass `reflect
 
+initialize
+  registerTraceClass `reflect_names
+
 -- structure stateVisit where
 --   idx : Nat := 1
 --   exps : Array Expr := #[]

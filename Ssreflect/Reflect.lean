@@ -61,7 +61,7 @@ def generatePropSimp (np nb : Expr) : CommandElabM Unit := liftTermElabM do
     let env <- getEnv
     let some c := env.find? eq | throwError s!"No reduction rule with name {eq}"
     let cT := c.type
-    trace[reflect] c.name ++ " : " ++ c.type
+    trace[reflect_names] c.name ++ " : " ++ c.type
     let name <- forallTelescopeReducing cT fun args cT => do
       let rhsb := cT.getAppArgs[1]!
       let lhsb := cT.getAppArgs[2]!
@@ -91,7 +91,8 @@ def generatePropSimp (np nb : Expr) : CommandElabM Unit := liftTermElabM do
         name, type, value
         levelParams := c.levelParams
       }
-      trace[reflect] name ++ " : " ++ type
+      trace[reflect] c.type ++ "\n ~~> \n" ++ type
+      trace[reflect_names] name ++ " : " ++ type
       -- TODO: configure if the simp theorem is local or global
       addSimpTheorem simpExtension name (post := true) (inv := false) AttributeKind.global (eval_prio default)
       return name
@@ -116,13 +117,13 @@ instance andP : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∧ P2) (b1 &&
 instance orP : [Reflect P1 b1] -> [Reflect P2 b2] -> Reflect (P1 ∨ P2) (b1 || b2) := by
   intros i1 i2; apply reflect_of_decide
   by_cases h : P1 <;> cases i1 <;> simp_all [decide_decidable_of_bool]
-@[reflect]
-instance decideP : [Decidable P] -> Reflect P (decide P) := by
-  intros; apply reflect_of_decide; trivial
-@[reflect]
+@[default_instance]
 instance ifP [Reflect P1 b1] [Reflect P2 b2] [Decidable P] :
   Reflect (if P then P1 else P2) (if P then b1 else b2) := by
   by_cases P <;> simp_all
+@[reflect]
+instance decideP : [Decidable P] -> Reflect P (decide P) := by
+  intros; apply reflect_of_decide; trivial
 
 -- Examples
 

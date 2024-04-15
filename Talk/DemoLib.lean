@@ -50,3 +50,9 @@ def ltb (n m : Nat) := leb (n + 1) m
 @[simp] def size : List α -> Nat
   | [] => 0
   | _ :: xs => Nat.succ $ size xs
+
+@[simp] theorem cons_neq_nil [BEq α] [LawfulBEq α] (x : α) : (x :: s == []) = false := by rfl
+
+@[reflect]
+instance [DecidableEq α] (x y : List α) : Reflect (x = y) (x == y) := by
+  simp [reflect_of_equiv]
