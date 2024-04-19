@@ -8,6 +8,12 @@ open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
 -- open Lean.Elab.Tactic.Conv.PatternMatchState
 
+namespace Lean.PersistentArray
+@[inline] def filterMap (as : PersistentArray α) (p : α → Option β) : PersistentArray β :=
+  as.foldl (init := {}) fun asNew a => match p a with | some b => asNew.push b | none => asNew
+end Lean.PersistentArray
+
+
 elab "scase" : tactic => newTactic do
     let hyps <- getLCtx
     let name <- fresh "H"
@@ -35,7 +41,7 @@ elab_rules : tactic
       newTactic do
         if (<-getUnsolvedGoals).length - goals != 0 then failure
         let hypsNew <- getLCtx
-        let newLtx := (hypsNew.decls.filter Option.isSome).map Option.get!
+        let newLtx := hypsNew.decls.filterMap id
         let newLtx := newLtx.filter (Option.isNone <| hyps.findFromUserName? ·.userName)
         let mut newLtx := newLtx.toArray
         if newLtx.size = 0 then failure
