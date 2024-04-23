@@ -78,8 +78,12 @@ instance subseqP (s1 s2 : List α) :
     apply reflect_of_equiv
     sorry
 
+
 set_option trace.reflect true
 #reflect subseq subseqb
+
+#check fun s1 s2 => if subseq s1 s2 then true else false
+
 
 def transitive {T : Type} (R : T -> T -> Prop) :=
   forall x y z, R x y -> R y z -> R x z
@@ -89,6 +93,7 @@ example : transitive (@subseq α) := by
   elim: s m1 m2=> [|x s IHs1]
   { simp
     -- srw -(equiv_of_reflect (subseqP ..))
+    -- simp
   }
   scase=> [|[] m1 /= m2]
   { simp }
@@ -112,3 +117,4 @@ example : transitive (@subseq α) := by
     sby exists (false :: m) }
 
 end leanssr
+--
