@@ -1,5 +1,5 @@
 import Ssreflect.Lang
--- import Std.Tactic.Omega
+-- import Batteries.Tactic.Omega
 
 section nat
 variable {α : Type}
@@ -22,8 +22,7 @@ variable {α : Type}
 @[reflect]
 instance lebP (n m : Nat) : Reflect (n <= m) (leb n m) := by
   apply reflect_of_equiv
-  elim: n m=> //== ?/[swap][]//=?->
-  omega
+  elim: n m=> //== ?/[swap][]//=
 #reflect Nat.le leb
 
 def ltb (n m : Nat) := leb (n + 1) m

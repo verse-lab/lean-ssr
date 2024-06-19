@@ -1,5 +1,5 @@
 import Ssreflect.Lang
--- import Std.Tactic.GuardMsgs
+-- import Batteries.Tactic.GuardMsgs
 
 -- Named introduction
 /-- info:

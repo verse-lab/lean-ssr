@@ -20,7 +20,7 @@ Then run
 lake update ssreflect
 ```
 
-You also need to make sure that your `lean-toolchain` file contains the same version of Lean 4 as LeanSSR's, and that your versions of LeanSSR's dependencies (currently only `std4`) match. THe project does not support version ranges at the moment.
+You also need to make sure that your `lean-toolchain` file contains the same version of Lean 4 as LeanSSR's, and that your versions of LeanSSR's dependencies (currently only `Batteries4`) match. THe project does not support version ranges at the moment.
 
 You may also consider using a stable release of the framework by adding the following to your `lakefile.lean` instead:
 

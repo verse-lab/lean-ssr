@@ -1,5 +1,5 @@
 import Ssreflect.Lang
-import Std.Data.List
+import Batteries.Data.List
 import Examples.Nat
 -- import Lean.Elab.Tactic
 -- import Lean
@@ -118,7 +118,8 @@ theorem lastI (x : α) (s : Seq α) : x :: s = rcons (belast x s) (last x s) := 
 
 theorem last_cons (x y : α) (s : Seq α) : last x (y :: s) = last y s := by sdone
 
-theorem size_rcons (s : Seq α) (x : α) : size (rcons s x) = size s + 1 := by elim: s=>//=
+theorem size_rcons (s : Seq α) (x : α) : size (rcons s x) = size s + 1 := by
+  elim: s=>//= _ > ->
 
 theorem size_belast (x : α) (s : Seq α) : size (belast x s) = size s := by
   elim: s x => [|y s IHs] x //=
@@ -202,14 +203,37 @@ theorem nth_last [Inhabited α] (s : Seq α) : nth s (size s - 1) = last default
 theorem nth_behead [Inhabited α] (s : Seq α) (n : Nat) : nth (behead s) n = nth s (n + 1) := by
   elim: s n=>[|x s _] [] //=
 
+-- @[simp]
+-- theorem cat_cons' (x : α) (s1 s2 : List α) : x :: s1 ++ s2 = x :: (s1 ++ s2) := by
+--   sorry
+@[simp]
+theorem ltSS (x y : Nat) : (x + 1 < y + 1) <-> (x < y) := by
+  omega
+
+@[simp]
+theorem eqSX (x y : Nat) : (x + 1 - (y + 1)) = x - y := by
+  omega
+
+
 theorem nth_cat [Inhabited α] (s1 s2 : Seq α) (n : Nat) :
   nth (s1 ++ s2) n = if n < size s1 then nth s1 n else nth s2 (n - size s1) := by
-  elim: s1 n=>[|x s1 IHs] [] //==
+  elim: s1 n=>[|x s1 IHs] [] //= >
+  srw ltSS eqSX //
+
+
+
+
+
+  -- srw cat_cons /= IHs
+
+
+
 
 theorem nth_rcons [Inhabited α] (s : Seq α) (x) (n : Nat) :
   nth (rcons s x) n =
     if n < size s then nth s n else if n = size s then x else default := by
-  elim: s n=>[|y s IHs] [] //==
+  elim: s n=>[|y s IHs] [] //=
+  srw ltSS //
 
 -- needs comparison predicates
 theorem nth_rcons_default [Inhabited α] (s : Seq α) (i : Nat) :
@@ -392,7 +416,9 @@ theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by
 variable [Inhabited α]
 
 theorem nth_mem (s : Seq α) : i < size s -> nth s i ∈ s := by
-  elim: s i=> // > /[swap][]//
+  elim: s i=> // > /[swap][]//=
+  sby srw ltSS
+
 
 theorem nth_index (s : Seq α) : x ∈ s → nth s (index x s) = x := by
   sby elim: s=> //== >; scase_if
@@ -404,19 +430,21 @@ theorem all_nthP (p : α -> Prop) [DecidablePred p] (s : Seq α) :
   { apply all; apply nth_mem; omega }
   apply all; omega
 
-theorem ltSS (a b : Nat) : (a < b) = (Nat.succ a < Nat.succ b) := by
-  move=> /==
+-- theorem ltSS (a b : Nat) : (a < b) = (Nat.succ a < Nat.succ b) := by
+--   move=> /==
 
 @[simp] theorem size_take (s : Seq α) : size (take n s) = if n < size s then n else size s := by
-  elim: s n=> [//|x s IHs [//|n/=]]; srw IHs -ltSS; scase_if
+  elim: s n=> [//|x s IHs [//|n/=]]; srw IHs ltSS; scase_if
 
 
 @[simp] theorem nth_take {i : Nat} {s : Seq α}  :
   i < n → nth (take n s) i = nth s i := by
-  sby elim: s n i=> // > IHs []//= ? []
+  elim: s n i=> // > IHs []//= ? [] //==
+  sby srw ltSS
 
 theorem before_find a [DecidablePred a] (s : Seq α) : i < find a s → ¬ a (nth s i) := by
   elim: s i=> //= > IHs []//== <;> scase_if=> //
+  sby srw ltSS
 
 @[simp] def drop : Nat -> Seq α -> Seq α
   | n' + 1, _ :: s' => drop n' s'
@@ -432,7 +460,8 @@ theorem mask_cat : size m1 = size s1 → mask (m1 ++ m2) (s1 ++ s2) = mask m1 s1
   sby elim: m1 s1=> [/== ? /size0nil->|/== [] ?? []]
 
 theorem drop_nth (s : Seq α) : n < size s → drop n s = nth s n :: drop (n+1) s := by
-  sby elim: s n=> // x s /[swap][]//=
+  elim: s n=> // x s /[swap][]//=
+  srw ltSS // => > H /H ->
 
 @[simp] theorem nseqSn : nseq (.succ n) x = x :: nseq n x := by rfl
 

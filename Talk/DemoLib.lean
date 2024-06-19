@@ -41,8 +41,7 @@ instance allP (s : List α) : Reflect (all a s) (allb a s) := by
 @[reflect]
 instance lebP (n m : Nat) : Reflect (n <= m) (leb n m) := by
   apply reflect_of_equiv
-  elim: n m=> //== ?/[swap][]//=?->
-  omega
+  elim: n m=> //== ?/[swap][]//=
 #reflect Nat.le leb
 
 def ltb (n m : Nat) := leb (n + 1) m

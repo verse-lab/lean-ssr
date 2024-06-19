@@ -1,6 +1,6 @@
 import Lean
 import Lean.Elab.Tactic
-import Std.Lean.Meta.UnusedNames
+import Batteries.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Ssreflect.Elim
 

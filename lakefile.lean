@@ -9,8 +9,8 @@ package ssreflect where
   ]
   -- add any additional package configuration options here
 
-require std from git "https://github.com/leanprover/std4" @ "main"
-
+require batteries from
+    git "https://github.com/leanprover-community/batteries" @ "main"
 
 @[default_target]
 lean_lib Ssreflect where
@@ -18,16 +18,16 @@ lean_lib Ssreflect where
 
 @[default_target]
 lean_lib Examples {
-  globs := #[.submodules "Examples"]
+  globs := #[.submodules `Examples]
 }
 
 @[default_target]
 lean_lib Talk {
-  globs := #[.submodules "Talk"]
+  globs := #[.submodules `Talk]
 }
 
 @[default_target]
 lean_lib Tests {
-  globs := #[.submodules "Tests"]
+  globs := #[.submodules `Tests]
   leanOptions := #[⟨`linter.unusedVariables, false⟩]
 }

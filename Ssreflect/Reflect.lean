@@ -1,8 +1,8 @@
 import Lean
 import Lean.Elab.Tactic
-import Std.Lean.Meta.UnusedNames
+import Batteries.Lean.Meta.UnusedNames
 import Ssreflect.Utils
--- import Std.Tactic.Omega
+-- import Batteries.Tactic.Omega
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
@@ -22,7 +22,6 @@ theorem toPropEq (_: b1 = b2) [inst1:Reflect P1 b1] [inst2:Reflect P2 b2] :
 
 theorem decide_decidable_of_bool {P} : @decide p (decidable_of_bool b P) = b := by
   by_cases h : p <;> simp_all
-  { apply Eq.symm; rw [P]; simp_all }
   cases b <;> simp_all
 
 def reflect_of_equiv : (b = true <-> P) -> Reflect P b := by
@@ -34,7 +33,7 @@ def equiv_of_reflect : Reflect P b -> (b = true <-> P) := by
   intro r; cases r <;> simp_all
 
 instance [Reflect P b] : Decidable P := by
-  eapply decidable_of_bool
+  apply decidable_of_bool
   apply equiv_of_reflect
   assumption
 
@@ -86,7 +85,7 @@ def generatePropSimp (np nb : Expr) : CommandElabM Unit := liftTermElabM do
         let body <- elabTermAndSynthesize t none
 
         mkLambdaFVars args body
-      let name := s! "eq_" ++ np ++ s!"{i}"
+      let name := `eq_ ++ np ++ (s!"{i}").toName
       addDecl <| Declaration.thmDecl {
         name, type, value
         levelParams := c.levelParams

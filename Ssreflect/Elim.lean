@@ -1,6 +1,6 @@
 import Lean
 import Lean.Elab.Tactic
-import Std.Lean.Meta.UnusedNames
+import Batteries.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Lean.Parser.Term
 
@@ -10,7 +10,7 @@ open Lean Elab Command Term Meta Tactic
 
 elab "scase" : tactic => newTactic do
     let hyps <- getLCtx
-    let name <- fresh "H"
+    let name <- fresh `H
     run `(tactic| intro $name:ident)
     run `(tactic| unhygienic cases $name:ident)
     tryGoal $ allGoal $ newTactic do
@@ -27,7 +27,7 @@ elab_rules : tactic
   | `(tactic|scase!) => newTactic do
     let goals := (<- getUnsolvedGoals).length
     let hyps <- getLCtx
-    let name <- fresh "H"
+    let name <- fresh `H
     let state <- saveState
     try
       run `(tactic| intro $name:ident)
@@ -55,7 +55,7 @@ elab_rules : tactic
 
 elab "elim" : tactic => newTactic do
     let hyps <- getLCtx
-    let name <- fresh "H"
+    let name <- fresh `H
     run `(tactic| intro $name:ident)
     run `(tactic| unhygienic induction $name:ident)
     newTactic $ allGoal do
@@ -119,7 +119,7 @@ elab "scase_if" : tactic => newTactic do
   let t <- Term.elabTerm t none
   let ifc <- Revert.kpattern (<-getMainTarget) t
   let t <- PrettyPrinter.delab ifc.getAppArgs[1]!
-  let name <- fresh "H"
+  let name <- fresh `H
   run `(tactic| by_cases $name : $t)
   allGoal $ run `(tactic| try simp only [↓reduceIte, $name:term])
   tryGoal $ allGoal $ run `(tactic| revert $name)

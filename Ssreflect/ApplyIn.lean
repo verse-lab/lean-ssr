@@ -1,7 +1,7 @@
 -- import Mathlib
 import Lean
 import Lean.Elab.Tactic
-import Std.Lean.Meta.UnusedNames
+import Batteries.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Ssreflect.Elim
 
@@ -50,7 +50,7 @@ elab "apply" t:term "in" name:ident : tactic => newTactic do
 
 
 elab "sapply" : tactic => newTactic do
-  let H <- fresh "H"
+  let H <- fresh `H
   run `(tactic| intros $H; apply $H; try clear $H)
 -- def appP.{u} :  Type u -> (Type u -> Type u) -> Prop :=
 --   fun x f => True

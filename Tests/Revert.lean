@@ -1,6 +1,6 @@
 import Ssreflect.Lang
--- import Std.Tactic.GuardMsgs
-import Std.Data.List
+-- import Batteries.Tactic.GuardMsgs
+import Batteries.Data.List
 
 -- Named revert
 /-- info:
@@ -20,10 +20,10 @@ theorem subnDA (m n p : Nat) : n - (m + p) = (n - m) - p := by
   omega
 
 -- Elim on Nat
-/-- info:
-case succ
+/--
+info: case succ
 m n p : Nat
-⊢ Nat.succ p + m - (Nat.succ p + n) = p + m - (p + n)
+⊢ p + 1 + m - (p + 1 + n) = p + m - (p + n)
 -/
 #guard_msgs in
 theorem subnDl (p m n : Nat) : (p + m) - (p + n) = m - n := by
@@ -43,14 +43,14 @@ theorem length_filter (s : List α) (f : α → Prop) [dp : DecidablePred f] :
   elim: s=>//==x xs Ih; srw List.filter;
   scase: [f x];
   { move=>?//= }
-  { move=>h//==; omega }
+  { move=>h//== }
 
 -- Revert theorem application
 /--
 info: α : Type
 x y : α
 xs : List α
-⊢ List.length (y :: xs) ≤ List.length (x :: y :: xs) → List.length (y :: xs) ≤ List.length (x :: y :: xs)
+⊢ (y :: xs).length ≤ (x :: y :: xs).length → (y :: xs).length ≤ (x :: y :: xs).length
 -/
 #guard_msgs in
 theorem length_cons_1 {α : Type} (x : α) (y : α) (xs : List α) :
@@ -64,7 +64,7 @@ theorem length_cons_1 {α : Type} (x : α) (y : α) (xs : List α) :
 info: α : Type
 x y : α
 xs : List α
-⊢ List.length (y :: xs) ≤ List.length (x :: y :: xs) → List.length (y :: xs) ≤ List.length (x :: y :: xs)
+⊢ (y :: xs).length ≤ (x :: y :: xs).length → (y :: xs).length ≤ (x :: y :: xs).length
 -/
 #guard_msgs in
 theorem length_cons_2 {α : Type} (x : α) (y : α) (xs : List α) :

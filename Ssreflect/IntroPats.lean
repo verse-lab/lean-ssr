@@ -1,6 +1,6 @@
 import Lean
 import Lean.Elab.Tactic
-import Std.Lean.Meta.UnusedNames
+import Batteries.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Ssreflect.Elim
 import Ssreflect.ApplyIn
@@ -71,7 +71,7 @@ syntax "{}" ident : ssrIntro
   annotating errors at the syntax `arr`.
 -/
 private def rw (arr : Syntax) (rtl : Bool := false) : TacticM Unit := do
-    let name ← fresh "H"
+    let name ← fresh `H
     let s ← saveState
     try
       run `(tactic| intros $name);
@@ -83,7 +83,7 @@ private def rw (arr : Syntax) (rtl : Bool := false) : TacticM Unit := do
     tryGoal $ run `(tactic| clear $name)
 
 private def view (t : TSyntax `term) : TacticM Unit := do
-  let name <- fresh "H"
+  let name <- fresh `H
   run `(tactic| intros $name)
   run `(tactic| first
     | apply $t:term in $name:ident
@@ -97,7 +97,7 @@ elab_rules : tactic
     | `(ssrIntro| *) => run `(tactic| intros)
     | `(ssrIntro| >) => introsDep
     | `(ssrIntro| _) => do
-      let name ← fresh "H"
+      let name ← fresh `H
       run `(tactic| intros $name)
       run `(tactic| clear $name)
     -- rewrites
@@ -107,15 +107,15 @@ elab_rules : tactic
     | `(ssrIntro|/$t:ident) => do view t
     | `(ssrIntro|/($t:term)) => do view t
     | `(ssrIntro|/(_ $t:ident)) => do
-      let name <- fresh "N"
-      let h <- fresh "H"
+      let name <- fresh `N
+      let h <- fresh `H
       run `(tactic| intros $name)
       run `(tactic| apply $name:term in $t)
       run `(tactic| try clear $name)
       run `(tactic| try clear $h)
     | `(ssrIntro|/(_ $t:term)) => do
-      let name <- fresh "N"
-      let h <- fresh "H"
+      let name <- fresh `N
+      let h <- fresh `H
       run `(tactic| intros $name)
       run `(tactic| let $h := $t)
       run `(tactic| apply $name:term in $h)
@@ -161,7 +161,7 @@ elab_rules : tactic
       let forallE n _ _ _ := (<- getMainTarget).consumeMData
         | run  `(tactic| fail "Goal is not an arrow type")
       run  `(tactic| intros $(mkIdent n))
-      let n' <- fresh (n ++ "0")
+      let n' <- fresh (n ++ "0".toName)
       run  `(tactic| have $n' := $(mkIdent n))
       run  `(tactic| revert $(mkIdent n))
       run  `(tactic| revert $n')

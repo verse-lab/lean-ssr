@@ -1,10 +1,10 @@
 import Lean
 import Lean.Elab.Tactic
-import Std.Lean.Meta.UnusedNames
+import Batteries.Lean.Meta.UnusedNames
 import Ssreflect.Utils
 import Ssreflect.Basic
 import Ssreflect.Elim
--- import Std.Tactic.Replace
+-- import Batteries.Tactic.Replace
 
 open Lean Lean.Expr Lean.Meta
 open Lean Elab Command Term Meta Tactic
@@ -99,20 +99,20 @@ elab_rules : tactic
         let t <- Revert.kpattern (<- getMainTarget) t
         if t.hasExprMVar then
           throwErrorAt ts "Term is not generalized enough"
-        let x <- fresh "x"
-        let h <- fresh "H"
+        let x <- fresh `x
+        let h <- fresh `H
         run `(tactic| generalize $h : $ts = $x)
         run `(tactic| clear $h; revert $x)
       catch | ex => do
         let t <- Term.elabTermAndSynthesize ts none
         let ty <- inferType t
-        let id <- fresh "H"
+        let id <- fresh `H
         let goal <- (<-getMainGoal).assert id.getId ty t
         setGoals [goal]
       -- let t <- instantiateMVars t
   | `(ssrRevert| [ $t:term ]) => do
-      let x <- fresh "x"
-      let h <- fresh "H"
+      let x <- fresh `x
+      let h <- fresh `H
       let goalType <- getMainTarget
       let prop <- Term.elabTerm (<- `(term| Prop)) none
       let t <- Term.elabTerm t prop
