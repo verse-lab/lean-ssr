@@ -218,7 +218,7 @@ theorem eqSX (x y : Nat) : (x + 1 - (y + 1)) = x - y := by
 theorem nth_cat [Inhabited α] (s1 s2 : Seq α) (n : Nat) :
   nth (s1 ++ s2) n = if n < size s1 then nth s1 n else nth s2 (n - size s1) := by
   elim: s1 n=>[|x s1 IHs] [] //= >
-  srw ltSS eqSX //
+  srw size ltSS eqSX //
 
 
 
@@ -233,7 +233,7 @@ theorem nth_rcons [Inhabited α] (s : Seq α) (x) (n : Nat) :
   nth (rcons s x) n =
     if n < size s then nth s n else if n = size s then x else default := by
   elim: s n=>[|y s IHs] [] //=
-  srw ltSS //
+  srw size ltSS //
 
 -- needs comparison predicates
 theorem nth_rcons_default [Inhabited α] (s : Seq α) (i : Nat) :
@@ -434,7 +434,7 @@ theorem all_nthP (p : α -> Prop) [DecidablePred p] (s : Seq α) :
 --   move=> /==
 
 @[simp] theorem size_take (s : Seq α) : size (take n s) = if n < size s then n else size s := by
-  elim: s n=> [//|x s IHs [//|n/=]]; srw IHs ltSS; scase_if
+  elim: s n=> [//|x s IHs [//|n/=]]; srw take size IHs size ltSS; scase_if
 
 
 @[simp] theorem nth_take {i : Nat} {s : Seq α}  :
