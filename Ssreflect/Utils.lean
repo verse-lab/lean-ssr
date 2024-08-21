@@ -197,13 +197,13 @@ where
           withReader ({ · with elaborator := evalFn.declName }) <| annotate stx <| evalFn.value stx
         catch ex => handleEx s failures ex (eval s evalFns)
 
-def _root_.Lean.EnvExtension.set [Inhabited σ] (ext : EnvExtension σ) (s : σ) : MetaM Unit := do
+def _root_.Lean.EnvExtension.setSSR [Inhabited σ] (ext : EnvExtension σ) (s : σ) : MetaM Unit := do
   Lean.setEnv $ ext.setState (<- getEnv) s
 
-def _root_.Lean.EnvExtension.modify [Inhabited σ] (ext : EnvExtension σ) (s : σ -> σ) : MetaM Unit := do
+def _root_.Lean.EnvExtension.modifySSR [Inhabited σ] (ext : EnvExtension σ) (s : σ -> σ) : MetaM Unit := do
   Lean.modifyEnv (ext.modifyState · s)
 
-def _root_.Lean.EnvExtension.get [Inhabited σ] (ext : EnvExtension σ) : MetaM σ := do
+def _root_.Lean.EnvExtension.getSSR [Inhabited σ] (ext : EnvExtension σ) : MetaM σ := do
   return ext.getState (<- getEnv)
 
 initialize

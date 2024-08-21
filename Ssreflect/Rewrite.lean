@@ -68,7 +68,7 @@ initialize locExt : EnvExtension LocationExtState ←
 
 elab_rules : tactic
   | `(srwRule| $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm) => do
-      let l <- locExt.get
+      let l <- locExt.getSSR
       try do
         let t' := match t with
           | `(srwTerm| ($t:term)) => some t
@@ -99,7 +99,7 @@ elab_rules : tactic
       catch | ex => throwErrorAt t ex.toMessageData
 
 elab "srw" rs:srwRules l:(location)? : tactic => do
-  locExt.set l
+  locExt.setSSR l
   elabTactic rs.raw[0]
 
 -- #check Syntax
