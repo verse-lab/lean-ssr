@@ -79,10 +79,10 @@ instance subseqP (s1 s2 : List α) :
     sorry
 
 
-set_option trace.reflect true
+-- set_option trace.reflect true
 #reflect subseq subseqb
 
-#check fun s1 s2 => if subseq s1 s2 then true else false
+-- #check fun s1 s2 => if subseq s1 s2 then true else false
 
 
 def transitive {T : Type} (R : T -> T -> Prop) :=

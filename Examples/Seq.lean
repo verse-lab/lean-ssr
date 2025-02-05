@@ -9,7 +9,7 @@ notation "Seq" => List
 
 namespace seq
 
-variable {α : Type} [DecidableEq α]
+variable {α : Type}
 
 @[simp] def size : Seq α -> Nat
   | [] => 0
@@ -18,7 +18,7 @@ variable {α : Type} [DecidableEq α]
 theorem size0nil (s : Seq α) : 0 = size s -> s = [] := by
   sby scase: s
 
-@[simp] def beq : Seq α -> Seq α -> Bool
+@[simp] def beq [DecidableEq α] : Seq α -> Seq α -> Bool
   | [], [] => true
   | x :: xs, y :: ys => x = y /\ beq xs ys
   | _, _ => false
@@ -214,26 +214,16 @@ theorem ltSS (x y : Nat) : (x + 1 < y + 1) <-> (x < y) := by
 theorem eqSX (x y : Nat) : (x + 1 - (y + 1)) = x - y := by
   omega
 
-
 theorem nth_cat [Inhabited α] (s1 s2 : Seq α) (n : Nat) :
   nth (s1 ++ s2) n = if n < size s1 then nth s1 n else nth s2 (n - size s1) := by
   elim: s1 n=>[|x s1 IHs] [] //= >
-  srw ltSS eqSX //
-
-
-
-
-
-  -- srw cat_cons /= IHs
-
-
-
+  srw size ltSS eqSX //
 
 theorem nth_rcons [Inhabited α] (s : Seq α) (x) (n : Nat) :
   nth (rcons s x) n =
     if n < size s then nth s n else if n = size s then x else default := by
   elim: s n=>[|y s IHs] [] //=
-  srw ltSS //
+  srw size ltSS //
 
 -- needs comparison predicates
 theorem nth_rcons_default [Inhabited α] (s : Seq α) (i : Nat) :
@@ -339,6 +329,8 @@ end seq_find
 
 section perm_seq
 
+variable [DecidableEq α]
+
 @[simp] abbrev count_mem (x : α) := count (fun y => x = y)
 
 def eqfun {A B : Type} (f g : B → A) := ∀ (x : B), f x = g x
@@ -356,7 +348,7 @@ theorem permP1 (s1 s2 : Seq α) [DecidablePred a]:
   scase: [count a (s1 ++ s2) = 0]=> [countN0|]; rotate_left
   { simp [count_cat]; omega }
   shave ![x s12x a_x]: has a (s1 ++ s2)
-  { elim: (s1 ++ _) countN0=> // x s /== /- simplify has -/
+  { elim: (s1 ++ _) countN0=> // x s /=
     sby scase_if }
   let a' := fun y => ¬(x = y) ∧ a y
   shave eq_cnt' : ∀s, count a s = count_mem x s + count a' s
@@ -388,6 +380,7 @@ def mask : Seq Bool -> Seq α -> Seq α
 @[simp] theorem mask_eq2 :
   mask [] x = [] := by rfl
 
+omit [DecidableEq α] in
 theorem mask0 :
   mask x ([] : List α) = [] := by sby scase: x
 
@@ -396,6 +389,7 @@ theorem mask0 :
   | s1, [] => s1 = []
   | s1@(x :: s1'), y :: s2' => subseqb (if x = y then s1' else s1) s2'
 
+omit [DecidableEq α] in
 @[simp] theorem mask_false (s : Seq α) (n : Nat) : mask (nseq n false) s = [] := by
   elim: s n=> [|??/[swap]][]// ?
   srw ?nseq//
@@ -415,6 +409,7 @@ theorem index_mem (s : Seq α) : (index x s < size s) = (x ∈ s) := by
 
 variable [Inhabited α]
 
+omit [DecidableEq α] in
 theorem nth_mem (s : Seq α) : i < size s -> nth s i ∈ s := by
   elim: s i=> // > /[swap][]//=
   sby srw ltSS
@@ -433,15 +428,17 @@ theorem all_nthP (p : α -> Prop) [DecidablePred p] (s : Seq α) :
 -- theorem ltSS (a b : Nat) : (a < b) = (Nat.succ a < Nat.succ b) := by
 --   move=> /==
 
+omit [DecidableEq α] [Inhabited α] in
 @[simp] theorem size_take (s : Seq α) : size (take n s) = if n < size s then n else size s := by
   elim: s n=> [//|x s IHs [//|n/=]]; srw ?size IHs ?size ltSS; scase_if
 
-
+omit [DecidableEq α] in
 @[simp] theorem nth_take {i : Nat} {s : Seq α}  :
   i < n → nth (take n s) i = nth s i := by
   elim: s n i=> // > IHs []//= ? [] //==
   sby srw ltSS
 
+omit [DecidableEq α] in
 theorem before_find a [DecidablePred a] (s : Seq α) : i < find a s → ¬ a (nth s i) := by
   elim: s i=> //= > IHs []//== <;> scase_if=> //
   sby srw ltSS
@@ -453,23 +450,27 @@ theorem before_find a [DecidablePred a] (s : Seq α) : i < find a s → ¬ a (nt
 @[simp] theorem size_drop : size (drop n s) = size s - n := by
   sby elim: s n=> //== > /[swap][]
 
+omit [DecidableEq α] [Inhabited α] in
 @[simp] theorem cat_take_drop n0 (s : Seq α) : take n0 s ++ drop n0 s = s := by
   sby elim: s n0=> // > /[swap][]
 
 theorem mask_cat : size m1 = size s1 → mask (m1 ++ m2) (s1 ++ s2) = mask m1 s1 ++ mask m2 s2 := by
-  sby elim: m1 s1=> [/== ? /size0nil->|/== [] ?? []]
+  sby elim: m1 s1=> [/== ? /size0nil->|/= [] ?? [] ]
 
+omit [DecidableEq α] in
 theorem drop_nth (s : Seq α) : n < size s → drop n s = nth s n :: drop (n+1) s := by
   elim: s n=> // x s /[swap][]//=
   srw ltSS // => > H /H ->
 
 @[simp] theorem nseqSn : nseq (.succ n) x = x :: nseq n x := by rfl
 
+omit [Inhabited α] in
 @[simp↓] theorem all_pred1P (s : Seq α) (x : α) :
   (s = nseq (size s) x) =
   all (x = ·) s := by
     elim: s x=> //== >/[swap]?<- //==
 
+omit [Inhabited α] [DecidableEq α] in
 theorem take_oversize (s : Seq α) : size s ≤ n → take n s = s := by
   sby elim: s n=> // > /[swap][] //==
 
@@ -513,12 +514,12 @@ instance subseqP (s1 s2 : Seq α) :
   sby srw (drop_nth _ lt_i_m) // -[1]h nth_index // -index_mem
 
 
-set_option trace.reflect true
+-- set_option trace.reflect true
 #reflect subseq subseqb
 
-#check
-∀ x y s r,subseq (x :: s) (y :: r) =
-  if x = y then subseq s r else subseq (x :: s) r
+-- #check
+-- ∀ x y s r,subseq (x :: s) (y :: r) =
+--   if x = y then subseq s r else subseq (x :: s) r
 
 -- theorem subseq_trans' (s1 s2 s3 : Seq α) : subseq s1 s2 -> subseq s2 s3 -> subseq s1 s3 := by
 --   scase! => m2 _ -> ![m1 _ ->]
@@ -532,6 +533,7 @@ set_option trace.reflect true
 def transitive {T : Type} (R : T -> T -> Prop) :=
   forall x y z, R x y -> R y z -> R x z
 
+omit [Inhabited α] in
 theorem subseq_trans : transitive (@subseq α) := by
   move=> ?? s ![m2 _ ->] ![m1 _ ->]
   elim: s m1 m2=> [|x s IHs1]

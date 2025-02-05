@@ -52,9 +52,9 @@ syntax "/" ident : ssrIntro
 syntax "/(_" term ")" : ssrIntro
 
 -- destructs
-syntax "[ ]" : ssrIntro
+-- syntax "[]" : ssrIntro
 syntax "?[]" : ssrIntro
-syntax "[" sepBy1(ssrIntros, "|") "]" : ssrIntro
+syntax "[" sepBy(ssrIntros, "|") "]" : ssrIntro
 syntax "![" ssrIntros "]" : ssrIntro
 syntax "⟨" sepBy1(ssrIntros, "|") "⟩" : ssrIntro
 

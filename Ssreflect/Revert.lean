@@ -103,7 +103,7 @@ elab_rules : tactic
         let h <- fresh `H
         run `(tactic| generalize $h : $ts = $x)
         run `(tactic| clear $h; revert $x)
-      catch | ex => do
+      catch | _ex => do
         let t <- Term.elabTermAndSynthesize ts none
         let ty <- inferType t
         let id <- fresh `H
@@ -125,7 +125,7 @@ elab_rules : tactic
         run `(tactic| clear $h; revert $x)
         run `(tactic| try rewrite [iteIsTrue, iteIsFalse])
       catch
-      | ex => do
+      | _ex => do
         -- dbg_trace "revert failed: {<- ex.toMessageData.toString}"
         let dt <- mkAppM `Decidable #[t]
         let ts <- PrettyPrinter.delab dt

@@ -89,7 +89,7 @@ partial def idxGoal [Inhabited α] (tacs : Nat -> TacticM α)
   setGoals newGoals.toList
   return comb ans
 
-def keys [BEq α] [Hashable α] (m : HashMap α β) : List α :=
+def keys [BEq α] [Hashable α] (m : Std.HashMap α β) : List α :=
   m.fold (fun ks k _ => k :: ks) []
 
 
