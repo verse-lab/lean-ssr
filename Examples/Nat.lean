@@ -54,4 +54,28 @@ theorem iterS (n : Nat) (f : α → α) (x : α) : iter (n + 1) f x = f (iter n 
 theorem iterD (n m : Nat) (f : α → α) (x : α) : iter (n + m) f x = iter n f (iter m f x) := by
   elim: n => //=
 
+-- A simple example
+
+def product (ls: List Nat) acc :=
+  match ls with
+  | h :: t => product t (h * acc)
+  | [] => acc
+
+def product' (ls: List Nat) acc :=
+  match ls with
+  | h :: t =>
+    if h = 0
+    then 0
+    else product' t (h * acc)
+  | [] => acc
+
+theorem product_equiv: ∀ ls acc, product ls acc = product' ls acc := by
+  elim=>[acc|h t Hind acc]
+  . simp only [product, product']
+  simp only [product, product']
+  scase_if=>E
+  . subst E=>//==
+    clear Hind; sby elim: t
+  . sby apply Hind
+
 end nat
