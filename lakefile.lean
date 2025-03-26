@@ -10,7 +10,7 @@ package ssreflect where
   -- add any additional package configuration options here
 
 require batteries from
-    git "https://github.com/leanprover-community/batteries" @ "v4.15.0"
+    git "https://github.com/leanprover-community/batteries" @ "v4.17.0"
 
 @[default_target]
 lean_lib Ssreflect {
