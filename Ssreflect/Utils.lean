@@ -73,7 +73,7 @@ def allGoal [Inhabited α]
       return comb ans
 
 
-def range (n : Nat) := (List.iota n).reverse.map (fun x => x - 1)
+def range (n : Nat) := (List.range' 1 n).map (fun x => x - 1)
 
 partial def idxGoal [Inhabited α] (tacs : Nat -> TacticM α)
   (comb : List α -> α := fun _ => default) : TacticM α :=
@@ -89,7 +89,7 @@ partial def idxGoal [Inhabited α] (tacs : Nat -> TacticM α)
   setGoals newGoals.toList
   return comb ans
 
-def keys [BEq α] [Hashable α] (m : HashMap α β) : List α :=
+def keys [BEq α] [Hashable α] (m : Std.HashMap α β) : List α :=
   m.fold (fun ks k _ => k :: ks) []
 
 

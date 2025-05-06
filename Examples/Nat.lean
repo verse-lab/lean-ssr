@@ -35,7 +35,7 @@ instance (n m : Nat) : Reflect (n < m) (ltb n m) := by
 set_option trace.reflect true
 #reflect Nat.lt ltb
 
-@[simp] theorem eqSS (m n : Nat) : (Nat.succ m == Nat.succ n) = (m == n) := by rfl
+@[simp] theorem eqSS (m n : Nat) : (Nat.succ m == Nat.succ n) = (m == n) := by simp
 @[simp] theorem addSn (m n : Nat) : (Nat.succ m + n) = Nat.succ (m + n) := by omega
 
 @[simp] def iter (n : Nat) (f : α → α) (x : α) : α :=

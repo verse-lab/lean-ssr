@@ -52,7 +52,7 @@ macro "reflect" : attr =>
 
 def generatePropSimp (np nb : Expr) : CommandElabM Unit := liftTermElabM do
   let (some np, some nb) := (np.getAppFn.constName?, nb.getAppFn.constName?) | throwError s!"Either {np} or {nb} is not a function application"
-  let some eqs <- getEqnsFor? (nonRec := true) nb | throwError s!"No reduction rules for {nb}"
+  let some eqs <- getEqnsFor? nb | throwError s!"No reduction rules for {nb}"
   let rs <- getReducibilityStatus nb
   setReducibilityStatus nb .irreducible
   let mut names : Array Name := #[]
