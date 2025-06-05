@@ -73,7 +73,8 @@ def allGoal [Inhabited α]
       return comb ans
 
 
-def range (n : Nat) := (List.iota n).reverse.map (fun x => x - 1)
+def range (n : Nat) := (List.range' 1 n).map (fun x => x - 1)
+
 
 partial def idxGoal [Inhabited α] (tacs : Nat -> TacticM α)
   (comb : List α -> α := fun _ => default) : TacticM α :=
