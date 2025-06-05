@@ -37,7 +37,7 @@ theorem multiple_unnamed_intro : ∀ (x : Nat) (y : List Nat) (z : Nat), True :=
 unsolved goals
 x : Nat
 y : List Nat
-⊢ Nat → x = x ∧ y = y
+⊢ ∀ (z : Nat), x = x ∧ y = y
 -/
 #guard_msgs in
 theorem dependent_intro1 : ∀ (x : Nat) (y : List Nat) (z : Nat), x = x ∧ y = y := by
@@ -47,7 +47,7 @@ theorem dependent_intro1 : ∀ (x : Nat) (y : List Nat) (z : Nat), x = x ∧ y =
 /-- error:
 unsolved goals
 x : Nat
-⊢ List Nat → ∀ (z : Nat), x = x ∧ z = z
+⊢ ∀ (y : List Nat) (z : Nat), x = x ∧ z = z
 -/
 #guard_msgs in
 theorem dependent_intro2 : ∀ (x : Nat) (y : List Nat) (z : Nat), x = x ∧ z = z := by
