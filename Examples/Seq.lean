@@ -430,7 +430,7 @@ theorem all_nthP (p : α -> Prop) [DecidablePred p] (s : Seq α) :
 
 omit [DecidableEq α] [Inhabited α] in
 @[simp] theorem size_take (s : Seq α) : size (take n s) = if n < size s then n else size s := by
-  elim: s n=> [//|x s IHs [//|n/=]]; srw ?size IHs ?size ltSS; scase_if
+  elim: s n=> [//|x s IHs [//|n/=]]; srw ?size ?size ltSS; scase_if <;> (move; simp[take, IHs]; omega)
 
 omit [DecidableEq α] in
 @[simp] theorem nth_take {i : Nat} {s : Seq α}  :
