@@ -64,8 +64,12 @@ partial def macroCfg (stx : TSyntax `srwPos) : MacroM $ TSyntax `term :=
 abbrev LocationExtState := Option (TSyntax `Lean.Parser.Tactic.location)
 
 
-initialize locExt : IO.Ref LocationExtState ← IO.mkRef none
-
+--initialize locExt : IO.Ref LocationExtState ← IO.mkRef none
+initialize locExt : SimpleScopedEnvExtension LocationExtState LocationExtState ←
+  registerSimpleScopedEnvExtension {
+    initial := default
+    addEntry := fun _ s' => s'
+  }
 
 elab_rules : tactic
   | `(srwRule| $d:srwDir ? $i:srwIter ? $cfg:srwPos ? $t:srwTerm) => do

@@ -199,6 +199,7 @@ where
         catch ex => handleEx s failures ex (eval s evalFns)
 
 
+/-
 def _root_.Lean.ST.Ref.setSSR [Inhabited σ] (ext : IO.Ref σ) (s : σ) : MetaM Unit := do
   ext.set s
 
@@ -208,7 +209,28 @@ def  _root_.Lean.ST.Ref.modifySSR [Inhabited σ] (ext : IO.Ref σ) (s : σ -> σ
 
 def  _root_.Lean.ST.Ref.getSSR [Inhabited σ] (ext : IO.Ref σ) : MetaM σ := do
   ext.get
+-/
 
+def _root_.Lean.ScopedEnvExtension.modifyStateLocally (ext : ScopedEnvExtension α β σ) (env : Environment) (f : σ → σ) : Environment :=
+  ext.ext.modifyState (asyncMode := .local) env fun s =>
+    match s.stateStack with
+    | top :: stack => { s with stateStack := { top with state := f top.state } :: stack }
+    | _ => s
+
+
+def _root_.Lean.SimpleScopedEnvExtension.getSSR {σ α} [Inhabited σ] (ext : SimpleScopedEnvExtension α σ)
+   : MetaM σ := do
+  return ext.getState (asyncMode := .local) (<- getEnv)
+
+def _root_.Lean.SimpleScopedEnvExtension.modifySSR
+  (ext : SimpleScopedEnvExtension α σ) (s : σ -> σ)
+   : MetaM Unit := do
+  Lean.modifyEnv (ext.modifyStateLocally · s)
+
+
+
+def _root_.Lean.SimpleScopedEnvExtension.setSSR {σ α} [Inhabited σ] (ext : SimpleScopedEnvExtension α σ) (s : σ) : MetaM Unit := do
+  ext.modifySSR (fun x => s)
 
 
 
