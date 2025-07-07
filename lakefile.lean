@@ -15,7 +15,7 @@ require batteries from
 @[default_target]
 lean_lib Ssreflect {
   globs := #[.submodules `Ssreflect]
-  precompileModules := true
+  precompileModules := false
 }
   -- add any library configuration options here
 
