@@ -2,7 +2,7 @@ import Ssreflect.Lang
 -- import Batteries.Tactic.GuardMsgs
 
 -- Named introduction
-/-- info:
+/-- trace:
 z : Nat
 ⊢ z = z
 -/
@@ -19,7 +19,7 @@ theorem unnamed_intro : ∀ (x : Nat), x = x := by
 
 -- Ignore introduction
 /--
-info: ⊢ True
+trace: ⊢ True
 -/
 #guard_msgs in
 theorem ignore_intro : ∀ (x : Nat), True := by
@@ -54,7 +54,7 @@ theorem dependent_intro2 : ∀ (x : Nat) (y : List Nat) (z : Nat), x = x ∧ z =
   move=>>;
 
 -- Right rewrite: single
-/-- info:
+/-- trace:
 x y : Nat
 ⊢ y = y + 5 - 5
 -/
@@ -65,7 +65,7 @@ theorem rrw_intro_1 : ∀ (x y : Nat), x = y + 5 → y = x - 5 := by
   trivial
 
 -- Right rewrite: multiple sequentially
-/-- info:
+/-- trace:
 x y z : Nat
 ⊢ y = z → z = y
 -/
@@ -81,13 +81,13 @@ theorem rrw_intro_3 : ∀ (x y z : Nat), x = y → y = z → z = x  := by
 
 -- Right rewrite: the rewrite failing leaves the goal unchanged
 /--
-info: x y z : Nat
+trace: x y z : Nat
 ⊢ x = y → z = z
 ---
-info: x y z : Nat
+trace: x y z : Nat
 ⊢ x = y → z = z
 -/
-#guard_msgs(info, drop error) in
+#guard_msgs(trace, drop error) in
 theorem rrw_intro_fail_unchaged : ∀ (x y z : Nat), x = y → z = z := by
   move=>x y z;
   trace_state
@@ -96,7 +96,7 @@ theorem rrw_intro_fail_unchaged : ∀ (x y z : Nat), x = y → z = z := by
   sby move=>_
 
 -- Left rewrite
-/-- info:
+/-- trace:
 x y z : Nat
 ⊢ x = z → z = x
 -/
@@ -108,21 +108,21 @@ theorem lrw_intro_1 : ∀ (x y z : Nat), x = y → y = z → z = x := by
 
 -- Left rewrite: the rewrite failing leaves the goal unchanged
 /--
-info: x y z : Nat
+trace: x y z : Nat
 ⊢ x = y → z = z
 ---
-info: x y z : Nat
+trace: x y z : Nat
 ⊢ x = y → z = z
 -/
-#guard_msgs(info, drop error) in
+#guard_msgs(trace, drop error) in
 theorem lrw_intro_fail_unchaged : ∀ (x y z : Nat), x = y → z = z := by
   move=>x y z;
   trace_state
-  move=><-
+  move=> <-
   trace_state
   sby move=>_;
 
-/-- info:
+/-- trace:
 ⊢ ¬0 = 0 → False
 -/
 #guard_msgs in
@@ -149,7 +149,7 @@ theorem intro_top_one_arg : (∀ (x : Nat), ¬ x = x) → False := by
 --   move=>//=;
 
 -- Intro case single
-/--info: case intro
+/--trace: case intro
 x : Nat
 ⊢ ¬x = x → False
 -/
@@ -160,7 +160,7 @@ theorem intro_case_single : (∃ (x: Nat), ¬ x = x) → False := by
   move=>//=
 
 -- Intro case multiple
-/-- info: case intro.intro
+/-- trace: case intro.intro
 x y : Nat
 ⊢ ¬x = y → True
 -/
@@ -172,7 +172,7 @@ theorem intro_case_multiple : (∃ (x y : Nat), ¬ x = y) → True := by
 
 -- Intro under constructor
 /--
-info: case w
+trace: case w
 y : Nat
 ⊢ Nat
 
@@ -191,7 +191,7 @@ theorem intro_under_constructor y : ∃ x : Nat, x = y -> y = x := by
   sby scase: b c=> []
 
 /--
-info: case a
+trace: case a
 n : Nat
 ⊢ true = true ↔ true = true
 -/

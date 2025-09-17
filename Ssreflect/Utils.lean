@@ -230,7 +230,7 @@ def _root_.Lean.SimpleScopedEnvExtension.modifySSR
 
 
 def _root_.Lean.SimpleScopedEnvExtension.setSSR {σ α} [Inhabited σ] (ext : SimpleScopedEnvExtension α σ) (s : σ) : MetaM Unit := do
-  ext.modifySSR (fun x => s)
+  ext.modifySSR (fun _ => s)
 
 
 

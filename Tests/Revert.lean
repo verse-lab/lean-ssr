@@ -3,7 +3,7 @@ import Ssreflect.Lang
 import Batteries.Data.List
 
 -- Named revert
-/-- info:
+/-- trace:
 ⊢ ∀ (z : Nat), z = z
 -/
 #guard_msgs in
@@ -21,7 +21,7 @@ theorem subnDA (m n p : Nat) : n - (m + p) = (n - m) - p := by
 
 -- Elim on Nat
 /--
-info: case succ
+trace: case succ
 m n p : Nat
 ⊢ p + 1 + m - (p + 1 + n) = p + m - (p + n)
 -/
@@ -47,7 +47,7 @@ theorem length_filter (s : List α) (f : α → Prop) [dp : DecidablePred f] :
 
 -- Revert theorem application
 /--
-info: α : Type
+trace: α : Type
 x y : α
 xs : List α
 ⊢ (y :: xs).length ≤ (x :: y :: xs).length → (y :: xs).length ≤ (x :: y :: xs).length
@@ -61,7 +61,7 @@ theorem length_cons_1 {α : Type} (x : α) (y : α) (xs : List α) :
 
 -- Revert with hypothesis application
 /--
-info: α : Type
+trace: α : Type
 x y : α
 xs : List α
 ⊢ (y :: xs).length ≤ (x :: y :: xs).length → (y :: xs).length ≤ (x :: y :: xs).length

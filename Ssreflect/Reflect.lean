@@ -15,7 +15,7 @@ class inductive Reflect (P : Prop) (b : outParam Bool) : Prop
 
 theorem toPropEq (_: b1 = b2) [inst1:Reflect P1 b1] [inst2:Reflect P2 b2] :
   P1 = P2 := by
-  simp [Reflect.toProp]
+  simp
   cases inst1 <;> cases inst2 <;> simp_all
 
 -- #check Expr
