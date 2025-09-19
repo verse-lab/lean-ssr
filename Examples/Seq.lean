@@ -540,10 +540,10 @@ theorem subseq_trans : transitive (@subseq α) := by
   { sby srw ?mask0 }
   scase=> [|[] m1 /= m2]
   { sby srw ?mask }
-  { scase!: (IHs1 m1 m2)=> m ?->
+  { scase!: (IHs1 m1 m2)=> m ??
     sby exists (false :: m) }
   scase: m2=> [|[] m2] //=;
-  scase!: (IHs1 m1 m2)=> m ?->;
+  scase!: (IHs1 m1 m2)=> m ??
   sby exists (false :: m)
 
 /-
